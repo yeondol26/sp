@@ -1,414 +1,430 @@
 import * as auth from './auth.js';
-import { get, getList, ApiError, playlistCount, entryOf } from './api.js';
+import { get, getList, ApiError } from './api.js';
 
 const $view = document.getElementById('view');
-const $nav = document.getElementById('nav');
+const $chrome = document.getElementById('chrome');
+const $layers = document.querySelectorAll('#bg .layer');
 
 // ---------- helpers ----------
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-
-function pickImage(images, min = 64) {
+const pick = (images, min = 300) => {
   if (!images?.length) return '';
-  const sorted = [...images].sort((a, b) => (a.width || 0) - (b.width || 0));
-  return (sorted.find((i) => (i.width || 0) >= min) || sorted.at(-1)).url;
-}
-const imgTag = (images, min, alt = '') => {
-  const src = pickImage(images, min);
-  return src ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy">` : '<div class="ph"></div>';
+  const s = [...images].sort((a, b) => (a.width || 0) - (b.width || 0));
+  return (s.find((i) => (i.width || 0) >= min) || s.at(-1)).url;
 };
-// Playlist descriptions can contain HTML entities/markup; render as plain text only.
-const plainText = (html) => new DOMParser().parseFromString(html, 'text/html').body.textContent || '';
-const artistsOf = (x) => (x?.artists || []).map((a) => esc(a.name)).join(', ');
-const fmtMs = (ms) => {
-  const s = Math.floor((ms || 0) / 1000);
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+const artOf = (item, min) => pick(item?.album?.images || item?.images || item?.show?.images, min);
+const artistsOf = (x) => (x?.artists || []).map((a) => a.name).join(', ') || x?.show?.name || '';
+const fmt = (ms) => { const s = Math.max(0, Math.floor((ms || 0) / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const timeStr = (d = new Date()) => d.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
+const dateStr = (d = new Date()) => d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' });
+
+const ICONS = {
+  sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  expand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>',
+  out: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>',
+  device: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></svg>',
 };
-const ago = (iso) => {
-  const m = Math.round((Date.now() - new Date(iso)) / 60000);
-  if (m < 1) return '방금';
-  if (m < 60) return `${m}분 전`;
-  if (m < 1440) return `${Math.floor(m / 60)}시간 전`;
-  return `${Math.floor(m / 1440)}일 전`;
-};
-const extLink = (obj, label = 'Spotify에서 열기 ↗') =>
-  obj?.external_urls?.spotify ? `<a class="ext" href="${esc(obj.external_urls.spotify)}" target="_blank" rel="noopener">${label}</a>` : '';
 
-function errorHtml(e) {
-  let hint = '';
-  if (e instanceof ApiError) {
-    if (e.status === 403) hint = '권한이 없거나(개발 모드 앱의 사용자 미등록, 앱 소유자 Premium 만료 등) 이 엔드포인트를 쓸 수 없는 상태일 수 있습니다.';
-    else if (e.status === 404) hint = '항목을 찾을 수 없거나 해당 엔드포인트가 더 이상 제공되지 않을 수 있습니다.';
-    else if (e.status === 401) hint = '다시 로그인해 주세요.';
-  }
-  return `<p class="err">오류: ${esc(e.message)}${e.status ? ` (${e.status})` : ''}</p>${hint ? `<p class="muted small">${hint}</p>` : ''}`;
-}
-
-// ---------- row / tile renderers ----------
-const trackRow = (t, i, right = '') => !t ? '' : `
-  <a class="item" href="${t.album?.id ? `#/album/${t.album.id}` : esc(t.external_urls?.spotify || '#/home')}">
-    ${i != null ? `<span class="idx">${i}</span>` : ''}
-    ${imgTag(t.album?.images || t.images || t.show?.images, 64, t.name)}
-    <div class="meta"><div class="t">${esc(t.name)}</div><div class="s">${artistsOf(t) || esc(t.show?.name || '')}${t.album?.name ? ' · ' + esc(t.album.name) : ''}</div></div>
-    <span class="r">${right || fmtMs(t.duration_ms)}</span>
-  </a>`;
-
-const albumTrackRow = (t, album) => `
-  <a class="item" href="${esc(t.external_urls?.spotify || '#')}" target="_blank" rel="noopener">
-    <span class="idx">${t.track_number ?? ''}</span>
-    <div class="meta"><div class="t">${esc(t.name)}${t.explicit ? ' <span class="muted small">E</span>' : ''}</div><div class="s">${artistsOf(t) || artistsOf(album)}</div></div>
-    <span class="r">${fmtMs(t.duration_ms)}</span>
-  </a>`;
-
-const artistRow = (a, i) => !a ? '' : `
-  <a class="item round" href="#/artist/${a.id}">
-    ${i != null ? `<span class="idx">${i}</span>` : ''}
-    ${imgTag(a.images, 64, a.name)}
-    <div class="meta"><div class="t">${esc(a.name)}</div><div class="s">${esc((a.genres || []).slice(0, 3).join(', ')) || '아티스트'}</div></div>
-  </a>`;
-
-const albumTile = (a) => !a ? '' : `
-  <a class="tile" href="#/album/${a.id}">${imgTag(a.images, 300, a.name)}
-    <div class="t">${esc(a.name)}</div><div class="s">${(a.release_date || '').slice(0, 4)} · ${artistsOf(a)}</div></a>`;
-
-const playlistTile = (p) => !p ? '' : `
-  <a class="tile" href="#/playlist/${p.id}">${imgTag(p.images, 300, p.name)}
-    <div class="t">${esc(p.name)}</div><div class="s">${esc(p.owner?.display_name || '')}${playlistCount(p) != null ? ` · ${playlistCount(p)}곡` : ''}</div></a>`;
-
-const artistTile = (a) => !a ? '' : `
-  <a class="tile round" href="#/artist/${a.id}">${imgTag(a.images, 300, a.name)}
-    <div class="t">${esc(a.name)}</div><div class="s">아티스트</div></a>`;
-
-// Paged list with a "더 보기" button that follows the API's `next` URL.
-async function pagedList(container, firstPage, { extract, render, wrapClass = 'list' }) {
-  const list = document.createElement('div');
-  list.className = wrapClass;
-  container.append(list);
-  const more = document.createElement('button');
-  more.className = 'btn secondary more';
-  more.textContent = '더 보기';
-
-  let offset = 0;
-  const append = (page) => {
-    const { items, next } = extract(page);
-    list.insertAdjacentHTML('beforeend', items.map((x, i) => render(x, offset + i + 1)).join(''));
-    offset += items.length;
-    if (!items.length && offset === 0) list.innerHTML = '<p class="muted">항목이 없습니다.</p>';
-    if (next) container.append(more); else more.remove();
-    more.onclick = async () => {
-      more.disabled = true;
-      try { append(await get(next)); } catch (e) { more.insertAdjacentHTML('afterend', errorHtml(e)); more.remove(); }
-      more.disabled = false;
-    };
+// ---------- ambient background + accent color ----------
+let bgUrl = '', bgIdx = 0;
+function setBackground(url) {
+  if (!url || url === bgUrl) return;
+  bgUrl = url;
+  const img = new Image();
+  img.onload = () => {
+    if (bgUrl !== url) return;
+    bgIdx ^= 1;
+    $layers[bgIdx].style.backgroundImage = `url("${url}")`;
+    $layers[bgIdx].classList.add('on');
+    $layers[bgIdx ^ 1].classList.remove('on');
   };
-  append(firstPage);
+  img.src = url;
+  setAccentFrom(url);
 }
 
-// ---------- views ----------
-let stopTimers = [];
-const onLeave = (fn) => stopTimers.push(fn);
+// Pick a vivid color from the artwork for the progress bar / highlights.
+// Needs the image CDN to allow CORS; if it doesn't, we silently keep white.
+function setAccentFrom(url) {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    try {
+      const c = document.createElement('canvas');
+      c.width = c.height = 24;
+      const ctx = c.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0, 24, 24);
+      const d = ctx.getImageData(0, 0, 24, 24).data;
+      let best = null, bestScore = -1;
+      for (let i = 0; i < d.length; i += 4) {
+        const [h, s, l] = rgbToHsl(d[i], d[i + 1], d[i + 2]);
+        const score = s * (1 - Math.abs(l - 0.55) * 1.6);
+        if (score > bestScore) { bestScore = score; best = [h, s, l]; }
+      }
+      if (!best || best[1] < 0.18) { setAccent([255, 255, 255]); return; }
+      setAccent(hslToRgb(best[0], Math.min(1, best[1] * 1.15 + 0.1), 0.64));
+    } catch { setAccent([255, 255, 255]); }
+  };
+  img.onerror = () => setAccent([255, 255, 255]);
+  img.src = url;
+}
+const setAccent = ([r, g, b]) => document.documentElement.style.setProperty('--accent', `${r} ${g} ${b}`);
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2;
+  if (max === min) return [0, 0, l];
+  const d = max - min, s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  const h = max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [h / 6, s, l];
+}
+function hslToRgb(h, s, l) {
+  const f = (n) => { const k = (n + h * 12) % 12, a = s * Math.min(l, 1 - l); return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); };
+  return [f(0), f(8), f(4)];
+}
 
-function viewSetup() {
+// ---------- chrome: auto-hide, wake lock, fullscreen ----------
+let idleTimer = 0, autoHide = false;
+function poke() {
+  document.body.classList.remove('idle');
+  clearTimeout(idleTimer);
+  if (autoHide) idleTimer = setTimeout(() => document.body.classList.add('idle'), 3500);
+}
+['pointerdown', 'pointermove', 'keydown'].forEach((e) => addEventListener(e, poke, { passive: true }));
+
+const $wake = document.getElementById('btn-wake');
+const $fs = document.getElementById('btn-fs');
+const $out = document.getElementById('btn-out');
+$wake.innerHTML = ICONS.sun; $fs.innerHTML = ICONS.expand; $out.innerHTML = ICONS.out;
+
+let wakeLock = null;
+let wantWake = (() => { try { return localStorage.getItem('spv.wake') === '1'; } catch { return false; } })();
+async function applyWake() {
+  $wake.classList.toggle('on', wantWake);
+  try {
+    if (wantWake && !wakeLock && document.visibilityState === 'visible') {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    } else if (!wantWake && wakeLock) {
+      await wakeLock.release(); wakeLock = null;
+    }
+  } catch { /* refused (battery saver etc.) — keep the preference, retry on next visibility change */ }
+}
+if ('wakeLock' in navigator) {
+  $wake.onclick = () => { wantWake = !wantWake; try { localStorage.setItem('spv.wake', wantWake ? '1' : '0'); } catch {} applyWake(); };
+  document.addEventListener('visibilitychange', applyWake);
+} else $wake.hidden = true;
+
+const root = document.documentElement;
+const fsEnabled = document.fullscreenEnabled || document.webkitFullscreenEnabled;
+if (fsEnabled) {
+  $fs.onclick = () => {
+    const isFs = document.fullscreenElement || document.webkitFullscreenElement;
+    if (isFs) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    else (root.requestFullscreen || root.webkitRequestFullscreen).call(root);
+  };
+} else $fs.hidden = true; // iPhone Safari has no element fullscreen
+
+$out.onclick = () => { if (confirm('로그아웃할까요?')) { auth.logout(); location.hash = '#/'; route(); } };
+
+// ---------- NOW PLAYING ----------
+let cleanup = [];
+const onLeave = (f) => cleanup.push(f);
+
+async function fetchPlayer() {
+  try {
+    return await get('/me/player', { additional_types: 'track,episode' });
+  } catch (e) {
+    // Fall back to the narrower endpoint if /me/player is unavailable for this token.
+    if (e instanceof ApiError && (e.status === 403 || e.status === 404)) {
+      return get('/me/player/currently-playing', { additional_types: 'track,episode' });
+    }
+    throw e;
+  }
+}
+
+function viewNow() {
+  autoHide = true; poke();
+  $view.innerHTML = '<div class="center-msg">불러오는 중…</div>';
+
+  let state = null, at = 0, shownKey = null, mode = null, artIdx = 0, timer = 0, alive = true;
+
+  const els = {};
+  const buildPlaying = () => {
+    mode = 'playing'; shownKey = null;
+    $view.innerHTML = `
+      <section class="np">
+        <div class="np-inner">
+          <div class="art-wrap"><div class="art-ph"></div><img alt=""><img alt=""></div>
+          <div class="meta">
+            <div class="status"><span class="eq"><i></i><i></i><i></i></span><span class="st"></span></div>
+            <div class="text-swap">
+              <div class="title"></div>
+              <div class="artist"></div>
+              <div class="album"></div>
+            </div>
+            <div class="progress">
+              <div class="track-line"><i></i></div>
+              <div class="times tnum"><span class="cur">0:00</span><span class="dur">0:00</span></div>
+            </div>
+            <div class="device"></div>
+          </div>
+        </div>
+      </section>
+      <div class="mini-clock tnum"></div>`;
+    const q = (s) => $view.querySelector(s);
+    Object.assign(els, {
+      np: q('.np'), inner: q('.np-inner'), imgs: $view.querySelectorAll('.art-wrap img'),
+      st: q('.st'), swap: q('.text-swap'), title: q('.title'), artist: q('.artist'), album: q('.album'),
+      bar: q('.track-line > i'), cur: q('.cur'), dur: q('.dur'), device: q('.device'), clock: q('.mini-clock'),
+    });
+  };
+
+  const buildIdle = async () => {
+    mode = 'idle'; shownKey = null;
+    $view.innerHTML = `
+      <section class="np"><div class="clock-screen fade-in">
+        <div class="big-clock tnum"></div>
+        <div class="big-date"></div>
+        <div class="last-slot"></div>
+      </div></section>`;
+    els.bigClock = $view.querySelector('.big-clock');
+    els.bigDate = $view.querySelector('.big-date');
+    tickClock();
+    try {
+      const r = await get('/me/player/recently-played', { limit: 1 });
+      const t = r?.items?.[0]?.track;
+      if (!t || mode !== 'idle') return;
+      setBackground(artOf(t, 300));
+      $view.querySelector('.last-slot').innerHTML = `
+        <div class="last fade-in">
+          <img src="${esc(artOf(t, 64))}" alt="">
+          <div><div class="k">마지막으로 들은 곡</div><div class="n">${esc(t.name)}</div><div class="a">${esc(artistsOf(t))}</div></div>
+        </div>`;
+    } catch { /* optional */ }
+  };
+
+  const tickClock = () => {
+    if (els.clock?.isConnected) els.clock.textContent = timeStr();
+    if (els.bigClock?.isConnected) {
+      const parts = new Intl.DateTimeFormat('ko-KR', { hour: 'numeric', minute: '2-digit' }).formatToParts(new Date());
+      const ampm = parts.find((p) => p.type === 'dayPeriod')?.value || '';
+      const hm = parts.filter((p) => p.type === 'hour' || p.type === 'minute' || (p.type === 'literal' && p.value.includes(':'))).map((p) => p.value).join('');
+      els.bigClock.innerHTML = `${ampm ? `<span class="ampm">${esc(ampm)}</span>` : ''}${esc(hm)}`;
+      els.bigDate.textContent = dateStr();
+    }
+  };
+
+  const progressNow = () => {
+    const dur = state?.item?.duration_ms || 0;
+    const p = (state?.progress_ms || 0) + (state?.is_playing ? Date.now() - at : 0);
+    return Math.min(dur, p);
+  };
+
+  const paintProgress = () => {
+    if (mode !== 'playing' || !state?.item) return;
+    const dur = state.item.duration_ms || 0, p = progressNow();
+    els.bar.style.width = dur ? `${(p / dur) * 100}%` : '0';
+    els.cur.textContent = fmt(p);
+    els.dur.textContent = fmt(dur);
+  };
+
+  const swapArt = (url) => {
+    if (!url) return;
+    const next = els.imgs[artIdx ^ 1], cur = els.imgs[artIdx];
+    next.onload = () => { next.classList.add('on'); cur.classList.remove('on'); artIdx ^= 1; };
+    next.src = url;
+  };
+
+  const render = async () => {
+    const it = state?.item;
+    if (!it) { if (mode !== 'idle') await buildIdle(); return; }
+    if (mode !== 'playing') buildPlaying();
+
+    els.np.classList.toggle('paused', !state.is_playing);
+    els.st.textContent = state.is_playing ? 'Now Playing' : 'Paused';
+    const dev = state.device?.name;
+    els.device.innerHTML = dev ? `${ICONS.device}<span>${esc(dev)}</span>` : '';
+
+    const key = it.uri || it.id || it.name;
+    if (key !== shownKey) {
+      const first = shownKey === null;
+      shownKey = key;
+      swapArt(artOf(it, 600));
+      setBackground(artOf(it, 300));
+      if (!first) { els.swap.classList.add('out'); await sleep(350); }
+      els.title.textContent = it.name;
+      els.artist.textContent = artistsOf(it);
+      els.album.textContent = it.album?.name || it.show?.publisher || '';
+      document.title = `${it.name} · ${artistsOf(it)}`;
+      els.swap.classList.remove('out');
+    }
+    paintProgress();
+  };
+
+  const poll = async () => {
+    clearTimeout(timer);
+    if (!alive) return;
+    let delay = 5000;
+    if (document.visibilityState === 'visible') {
+      try {
+        state = await fetchPlayer();
+        at = Date.now();
+        await render();
+        // Re-check right after the current track should end, so the next song appears promptly.
+        if (state?.is_playing && state.item?.duration_ms) {
+          const left = state.item.duration_ms - progressNow();
+          delay = Math.max(1200, Math.min(delay, left + 800));
+        }
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 401) { route(); return; }
+        delay = 15000; // network hiccup: keep the last frame on screen and retry later
+      }
+    }
+    if (alive) timer = setTimeout(poll, delay);
+  };
+
+  const onVis = () => { if (document.visibilityState === 'visible') poll(); };
+  document.addEventListener('visibilitychange', onVis);
+  const tick = setInterval(() => { paintProgress(); tickClock(); }, 1000);
+  // Anti burn-in: nudge the layout a few pixels every minute (OLED iPhones / iPad Pro).
+  const drift = setInterval(() => {
+    if (els.inner?.isConnected) els.inner.style.transform = `translate(${(Math.random() * 12 - 6).toFixed(1)}px, ${(Math.random() * 12 - 6).toFixed(1)}px)`;
+  }, 60000);
+
+  onLeave(() => {
+    alive = false; clearTimeout(timer); clearInterval(tick); clearInterval(drift);
+    document.removeEventListener('visibilitychange', onVis);
+    document.title = 'Now Playing';
+  });
+  poll();
+}
+
+// ---------- TOP ----------
+const RANGES = { short_term: '최근 4주', medium_term: '최근 6개월', long_term: '약 1년' };
+
+async function viewTop(q) {
+  autoHide = false; poke();
+  const kind = q.get('kind') === 'artists' ? 'artists' : 'tracks';
+  const range = RANGES[q.get('range')] ? q.get('range') : 'short_term';
+  const href = (k, r) => `#/top?kind=${k}&range=${r}`;
+  const isArtist = kind === 'artists';
+
+  $view.innerHTML = `
+    <section class="top">
+      <div class="top-head">
+        <h1>My Top <span>${isArtist ? 'Artists' : 'Tracks'}</span></h1>
+        <div class="controls">
+          <div class="seg">
+            <a href="${href('tracks', range)}" class="${!isArtist ? 'on' : ''}">곡</a>
+            <a href="${href('artists', range)}" class="${isArtist ? 'on' : ''}">아티스트</a>
+          </div>
+          <div class="seg">${Object.entries(RANGES).map(([k, v]) => `<a href="${href(kind, k)}" class="${k === range ? 'on' : ''}">${v}</a>`).join('')}</div>
+        </div>
+      </div>
+      <div id="top-body"><div class="center-msg" style="min-height:40vh">불러오는 중…</div></div>
+    </section>`;
+
+  const body = document.getElementById('top-body');
+  let items = [];
+  try {
+    const first = await getList(`/me/top/${kind}`, { time_range: range, limit: 50 });
+    items = first?.items || [];
+    // If the page size got capped, follow `next` until we have up to 50.
+    let next = first?.next;
+    while (next && items.length < 50) {
+      const pg = await get(next);
+      items = items.concat(pg?.items || []);
+      next = pg?.next;
+    }
+  } catch (e) {
+    body.innerHTML = `<p class="err">불러오지 못했습니다: ${esc(e.message)}${e.status ? ` (${e.status})` : ''}</p>`;
+    return;
+  }
+  if (!body.isConnected) return;
+  if (!items.length) { body.innerHTML = '<p class="note">아직 데이터가 충분하지 않습니다. 이 기간에 들은 기록이 쌓이면 표시됩니다.</p>'; return; }
+
+  const img = (x, min) => (isArtist ? pick(x.images, min) : artOf(x, min));
+  const sub = (x) => (isArtist ? (x.genres || []).slice(0, 2).join(' · ') : artistsOf(x));
+  const link = (x) => esc(x.external_urls?.spotify || '#');
+  const pic = (x, min) => (img(x, min) ? `<img src="${esc(img(x, min))}" alt="" loading="lazy">` : '<div class="ph"></div>');
+  const rc = isArtist ? ' round' : '';
+  const [top1, ...others] = items;
+
+  setBackground(img(top1, 300));
+
+  body.innerHTML = `
+    <a class="hero1${rc} fade-in" href="${link(top1)}" target="_blank" rel="noopener">
+      <div class="pic">${pic(top1, 600)}</div>
+      <div>
+        <div class="rank">No. 1 · ${RANGES[range]}</div>
+        <div class="name">${esc(top1.name)}</div>
+        <div class="sub">${esc(sub(top1))}</div>
+      </div>
+    </a>
+    ${others.length ? `<div class="ranks">${others.slice(0, 9).map((x, i) => `
+      <a class="rcard${rc} fade-in" style="animation-delay:${i * 50}ms" href="${link(x)}" target="_blank" rel="noopener">
+        <span class="num tnum">${i + 2}</span>
+        ${pic(x, 300)}
+        <div class="n">${esc(x.name)}</div><div class="a">${esc(sub(x))}</div>
+      </a>`).join('')}</div>` : ''}
+    ${others.length > 9 ? `<div class="rest">${others.slice(9).map((x, i) => `
+      <a class="row${rc}" href="${link(x)}" target="_blank" rel="noopener">
+        <span class="i tnum">${i + 11}</span>${pic(x, 64)}
+        <div><div class="n">${esc(x.name)}</div><div class="a">${esc(sub(x))}</div></div>
+      </a>`).join('')}</div>` : ''}`;
+}
+
+// ---------- SETUP ----------
+function viewSetup(errMsg = '') {
+  autoHide = false;
   const uri = auth.redirectUri();
   const insecure = location.protocol !== 'https:' && !['127.0.0.1', '[::1]'].includes(location.hostname);
   $view.innerHTML = `
-    <h1>Spotify Viewer</h1>
-    <p class="muted">Spotify Web API로 내 재생 기록·Top·라이브러리를 읽기 전용으로 보여주는 뷰어입니다. 음악은 재생하지 않습니다.</p>
-    ${insecure ? `<p class="err">현재 주소(${esc(location.origin)})는 HTTPS가 아닙니다. Spotify는 HTTPS 또는 루프백(127.0.0.1) 리디렉트 URI만 허용하며, PKCE에 필요한 Web Crypto도 보안 컨텍스트에서만 동작합니다.</p>` : ''}
-    <div class="card">
-      <h2 style="margin-top:0">1. Spotify 앱 만들기</h2>
-      <p class="small muted">developer.spotify.com/dashboard 에서 앱을 만들고, <b>Web API</b>를 선택한 뒤 아래 Redirect URI를 정확히 그대로 등록하세요.</p>
-      <code class="box">${esc(uri)}</code>
-      <h2>2. Client ID 입력</h2>
-      <input type="text" id="cid" placeholder="Client ID" value="${esc(auth.getClientId())}" autocapitalize="off" autocorrect="off" spellcheck="false">
-      <p class="small muted">Client Secret은 필요 없습니다(PKCE). Client ID는 이 브라우저에만 저장됩니다.</p>
-      <div class="row" style="margin-top:12px"><button class="btn" id="go">Spotify로 로그인</button></div>
-      <div id="msg"></div>
-    </div>`;
+    <section class="setup"><div class="panel fade-in">
+      <h1>Now Playing</h1>
+      <p>Spotify에서 재생 중인 곡을 iPad · iPhone 화면에 보기 좋게 띄워 둡니다. 음악은 Spotify 앱에서 재생하세요.</p>
+      ${insecure ? `<p class="err">HTTPS 주소(또는 127.0.0.1)에서 열어야 로그인할 수 있습니다.</p>` : ''}
+      <ol>
+        <li>developer.spotify.com/dashboard 에서 앱을 만들고 <b>Web API</b>를 선택</li>
+        <li>Redirect URI에 아래 주소를 그대로 등록
+          <code>${esc(uri)}</code></li>
+        <li>User Management에 사용할 Spotify 계정 이메일 추가</li>
+      </ol>
+      <input id="cid" placeholder="Client ID" value="${esc(auth.getClientId())}" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <button class="cta" id="go">Spotify로 로그인</button>
+      <p class="note">Client Secret은 필요 없습니다. 토큰은 이 브라우저에만 저장되며 읽기 권한만 요청합니다.</p>
+      <div id="msg">${errMsg ? `<p class="err">${esc(errMsg)}</p>` : ''}</div>
+    </div></section>`;
   document.getElementById('go').onclick = async () => {
     const v = document.getElementById('cid').value.trim();
-    if (!/^[0-9a-zA-Z]{20,64}$/.test(v)) { document.getElementById('msg').innerHTML = '<p class="err">올바른 Client ID를 입력해 주세요.</p>'; return; }
+    const msg = document.getElementById('msg');
+    if (!/^[0-9a-zA-Z]{20,64}$/.test(v)) { msg.innerHTML = '<p class="err">올바른 Client ID를 입력해 주세요.</p>'; return; }
     auth.setClientId(v);
-    try { await auth.login(); } catch (e) { document.getElementById('msg').innerHTML = errorHtml(e); }
+    try { await auth.login(); } catch (e) { msg.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
   };
-}
-
-async function viewHome() {
-  $view.innerHTML = `<h1 id="hello">홈</h1>
-    <section class="card" id="now"><div class="muted">불러오는 중…</div></section>
-    <h2>최근 재생</h2><div id="recent"><div class="spinner">불러오는 중…</div></div>`;
-
-  get('/me').then((me) => {
-    const el = document.getElementById('hello');
-    if (el && me?.display_name) el.textContent = `${me.display_name}님`;
-  }).catch(() => {});
-
-  // Now playing: poll every 5s, interpolate the progress bar locally every second.
-  let state = null, fetchedAt = 0;
-  const paint = () => {
-    const el = document.getElementById('now');
-    if (!el) return;
-    const it = state?.item;
-    if (!it) { el.innerHTML = '<div class="muted">지금 재생 중인 항목이 없습니다.</div>'; return; }
-    const dur = it.duration_ms || 0;
-    const prog = Math.min(dur, (state.progress_ms || 0) + (state.is_playing ? Date.now() - fetchedAt : 0));
-    const album = it.album;
-    el.innerHTML = `<div class="now">
-      ${imgTag(album?.images || it.images || it.show?.images, 300, it.name)}
-      <div class="meta">
-        <div class="muted small">${state.is_playing ? '▶ 지금 재생 중' : '❚❚ 일시정지됨'}</div>
-        <div class="t">${esc(it.name)}</div>
-        <div class="muted">${artistsOf(it) || esc(it.show?.name || '')}</div>
-        ${album ? `<a class="small muted" href="#/album/${album.id}">${esc(album.name)}</a>` : ''}
-        <div class="bar"><i style="width:${dur ? (prog / dur) * 100 : 0}%"></i></div>
-        <div class="time"><span>${fmtMs(prog)}</span><span>${fmtMs(dur)}</span></div>
-      </div></div>`;
-  };
-  const poll = async () => {
-    if (document.hidden) return;
-    try {
-      state = await get('/me/player/currently-playing', { additional_types: 'track,episode' });
-      fetchedAt = Date.now();
-      paint();
-    } catch (e) {
-      const el = document.getElementById('now');
-      if (el) el.innerHTML = errorHtml(e);
-    }
-  };
-  poll();
-  const p = setInterval(poll, 5000);
-  const t = setInterval(() => state?.is_playing && paint(), 1000);
-  onLeave(() => { clearInterval(p); clearInterval(t); });
-
-  const box = document.getElementById('recent');
-  try {
-    const page = await getList('/me/player/recently-played', { limit: 50 });
-    box.innerHTML = '';
-    await pagedList(box, page, {
-      extract: (pg) => ({ items: pg?.items || [], next: pg?.next }),
-      render: (row) => trackRow(entryOf(row), null, ago(row.played_at)),
-    });
-  } catch (e) { box.innerHTML = errorHtml(e); }
-}
-
-async function viewTop(q) {
-  const kind = q.get('kind') === 'artists' ? 'artists' : 'tracks';
-  const range = ['short_term', 'medium_term', 'long_term'].includes(q.get('range')) ? q.get('range') : 'short_term';
-  const link = (k, r) => `#/top?kind=${k}&range=${r}`;
-  $view.innerHTML = `<h1>Top</h1>
-    <div class="seg">
-      <button class="${kind === 'tracks' ? 'on' : ''}" data-href="${link('tracks', range)}">곡</button>
-      <button class="${kind === 'artists' ? 'on' : ''}" data-href="${link('artists', range)}">아티스트</button>
-    </div><br>
-    <div class="seg">
-      <button class="${range === 'short_term' ? 'on' : ''}" data-href="${link(kind, 'short_term')}">최근 4주</button>
-      <button class="${range === 'medium_term' ? 'on' : ''}" data-href="${link(kind, 'medium_term')}">최근 6개월</button>
-      <button class="${range === 'long_term' ? 'on' : ''}" data-href="${link(kind, 'long_term')}">약 1년</button>
-    </div>
-    <div id="list"><div class="spinner">불러오는 중…</div></div>`;
-  const box = document.getElementById('list');
-  try {
-    const page = await getList(`/me/top/${kind}`, { time_range: range, limit: 50 });
-    box.innerHTML = '';
-    await pagedList(box, page, {
-      extract: (pg) => ({ items: pg?.items || [], next: pg?.next }),
-      render: kind === 'tracks' ? (t, i) => trackRow(t, i) : (a, i) => artistRow(a, i),
-    });
-  } catch (e) { box.innerHTML = errorHtml(e); }
-}
-
-const LIB_TABS = {
-  playlists: { label: '플레이리스트', path: '/me/playlists', params: { limit: 50 }, grid: true,
-    extract: (pg) => ({ items: pg?.items || [], next: pg?.next }), render: playlistTile },
-  tracks: { label: '좋아요 표시한 곡', path: '/me/tracks', params: { limit: 50 },
-    extract: (pg) => ({ items: pg?.items || [], next: pg?.next }), render: (row, i) => trackRow(entryOf(row), i) },
-  albums: { label: '앨범', path: '/me/albums', params: { limit: 50 }, grid: true,
-    extract: (pg) => ({ items: (pg?.items || []).map((r) => r.album), next: pg?.next }), render: albumTile },
-  artists: { label: '팔로우한 아티스트', path: '/me/following', params: { type: 'artist', limit: 50 }, grid: true,
-    extract: (pg) => ({ items: pg?.artists?.items || [], next: pg?.artists?.next }), render: artistTile },
-};
-
-async function viewLibrary(q) {
-  const tab = LIB_TABS[q.get('tab')] ? q.get('tab') : 'playlists';
-  const cfg = LIB_TABS[tab];
-  $view.innerHTML = `<h1>라이브러리</h1>
-    <div class="seg">${Object.entries(LIB_TABS).map(([k, v]) =>
-      `<button class="${k === tab ? 'on' : ''}" data-href="#/library?tab=${k}">${v.label}</button>`).join('')}</div>
-    <div id="list"><div class="spinner">불러오는 중…</div></div>`;
-  const box = document.getElementById('list');
-  try {
-    const page = await getList(cfg.path, cfg.params);
-    box.innerHTML = '';
-    await pagedList(box, page, { extract: cfg.extract, render: cfg.render, wrapClass: cfg.grid ? 'grid' : 'list' });
-  } catch (e) { box.innerHTML = errorHtml(e); }
-}
-
-async function viewSearch(q) {
-  const term = q.get('q') || '';
-  $view.innerHTML = `<h1>검색</h1>
-    <form id="sf"><input type="search" id="sq" placeholder="곡, 아티스트, 앨범, 플레이리스트" value="${esc(term)}" enterkeyhint="search"></form>
-    <div id="res"></div>`;
-  document.getElementById('sf').onsubmit = (ev) => {
-    ev.preventDefault();
-    const v = document.getElementById('sq').value.trim();
-    location.hash = `#/search?q=${encodeURIComponent(v)}`;
-  };
-  if (!term) { document.getElementById('sq').focus(); return; }
-  const box = document.getElementById('res');
-  box.innerHTML = '<div class="spinner">검색 중…</div>';
-  try {
-    // Kept at 10 per type: search page sizes were reportedly reduced in 2026.
-    const r = await get('/search', { q: term, type: 'track,artist,album,playlist', limit: 10 });
-    const tracks = (r.tracks?.items || []).filter(Boolean);
-    const artists = (r.artists?.items || []).filter(Boolean);
-    const albums = (r.albums?.items || []).filter(Boolean);
-    const pls = (r.playlists?.items || []).filter(Boolean);
-    box.innerHTML = `
-      ${tracks.length ? `<h2>곡</h2><div class="list">${tracks.map((t) => trackRow(t)).join('')}</div>` : ''}
-      ${artists.length ? `<h2>아티스트</h2><div class="grid">${artists.map(artistTile).join('')}</div>` : ''}
-      ${albums.length ? `<h2>앨범</h2><div class="grid">${albums.map(albumTile).join('')}</div>` : ''}
-      ${pls.length ? `<h2>플레이리스트</h2><div class="grid">${pls.map(playlistTile).join('')}</div>` : ''}
-      ${!tracks.length && !artists.length && !albums.length && !pls.length ? '<p class="muted">결과가 없습니다.</p>' : ''}`;
-  } catch (e) { box.innerHTML = errorHtml(e); }
-}
-
-const backLink = '<a class="back" href="javascript:history.back()">‹ 뒤로</a>';
-
-async function viewPlaylist(id) {
-  $view.innerHTML = `${backLink}<div id="hd"><div class="spinner">불러오는 중…</div></div><div id="list"></div>`;
-  try {
-    const p = await get(`/playlists/${encodeURIComponent(id)}`);
-    document.getElementById('hd').innerHTML = `<div class="hero">${imgTag(p.images, 300, p.name)}
-      <div><div class="kind">플레이리스트</div><h1>${esc(p.name)}</h1>
-      ${p.description ? `<div class="muted small">${esc(plainText(p.description))}</div>` : ''}
-      <div class="muted small">${esc(p.owner?.display_name || '')}${playlistCount(p) != null ? ` · ${playlistCount(p)}곡` : ''}</div>
-      <div style="margin-top:8px">${extLink(p)}</div></div></div>`;
-  } catch (e) { document.getElementById('hd').innerHTML = errorHtml(e); return; }
-
-  const box = document.getElementById('list');
-  try {
-    let page;
-    try { page = await getList(`/playlists/${encodeURIComponent(id)}/items`, { limit: 50 }); }
-    catch (e) {
-      if (e.status !== 404) throw e;
-      page = await getList(`/playlists/${encodeURIComponent(id)}/tracks`, { limit: 50 }); // pre-2026 path
-    }
-    await pagedList(box, page, {
-      extract: (pg) => ({ items: pg?.items || [], next: pg?.next }),
-      render: (row, i) => trackRow(entryOf(row), i),
-    });
-  } catch (e) {
-    box.innerHTML = errorHtml(e) + (e.status === 403
-      ? '<p class="muted small">개발 모드 앱에서는 다른 사용자가 만든 플레이리스트의 곡 목록 조회가 제한될 수 있습니다.</p>' : '');
-  }
-}
-
-async function viewAlbum(id) {
-  $view.innerHTML = `${backLink}<div id="hd"><div class="spinner">불러오는 중…</div></div><div id="list"></div>`;
-  try {
-    const a = await get(`/albums/${encodeURIComponent(id)}`);
-    const total = a.tracks?.total;
-    const durMs = (a.tracks?.items || []).reduce((s, t) => s + (t.duration_ms || 0), 0);
-    document.getElementById('hd').innerHTML = `<div class="hero">${imgTag(a.images, 300, a.name)}
-      <div><div class="kind">${esc(a.album_type || '앨범')}</div><h1>${esc(a.name)}</h1>
-      <div class="muted small">${(a.artists || []).map((ar) => `<a href="#/artist/${ar.id}">${esc(ar.name)}</a>`).join(', ')}
-        · ${esc(a.release_date || '')}${total != null ? ` · ${total}곡` : ''}${total === a.tracks?.items?.length ? ` · ${Math.round(durMs / 60000)}분` : ''}</div>
-      <div style="margin-top:8px">${extLink(a)}</div></div></div>`;
-    await pagedList(document.getElementById('list'), a.tracks, {
-      extract: (pg) => ({ items: pg?.items || [], next: pg?.next }),
-      render: (t) => albumTrackRow(t, a),
-    });
-    if (a.copyrights?.length) document.getElementById('list').insertAdjacentHTML('beforeend',
-      `<p class="muted small" style="margin-top:20px">${a.copyrights.map((c) => esc(c.text)).join('<br>')}</p>`);
-  } catch (e) { document.getElementById('hd').innerHTML = errorHtml(e); }
-}
-
-async function viewArtist(id) {
-  $view.innerHTML = `${backLink}<div id="hd"><div class="spinner">불러오는 중…</div></div><div id="list"></div>`;
-  try {
-    const a = await get(`/artists/${encodeURIComponent(id)}`);
-    document.getElementById('hd').innerHTML = `<div class="hero round">${imgTag(a.images, 300, a.name)}
-      <div><div class="kind">아티스트</div><h1>${esc(a.name)}</h1>
-      ${a.genres?.length ? `<div class="muted small">${esc(a.genres.join(', '))}</div>` : ''}
-      <div style="margin-top:8px">${extLink(a)}</div></div></div>`;
-  } catch (e) { document.getElementById('hd').innerHTML = errorHtml(e); return; }
-
-  const box = document.getElementById('list');
-  box.innerHTML = '<h2>디스코그래피</h2>';
-  try {
-    const page = await getList(`/artists/${encodeURIComponent(id)}/albums`, { include_groups: 'album,single,compilation', limit: 50 });
-    await pagedList(box, page, {
-      extract: (pg) => ({ items: pg?.items || [], next: pg?.next }),
-      render: albumTile, wrapClass: 'grid',
-    });
-  } catch (e) {
-    box.insertAdjacentHTML('beforeend', errorHtml(e) +
-      '<p class="muted small">이 앱 등급에서는 아티스트 앨범 목록 엔드포인트가 제공되지 않을 수 있습니다. 검색 탭에서 아티스트 이름으로 앨범을 찾아보세요.</p>');
-  }
-}
-
-function viewSettings() {
-  const scopes = auth.grantedScopes();
-  $view.innerHTML = `<h1>설정</h1>
-    <div class="card">
-      <p class="small muted">Client ID</p><code class="box">${esc(auth.getClientId())}</code>
-      <p class="small muted" style="margin-top:14px">Redirect URI</p><code class="box">${esc(auth.redirectUri())}</code>
-      <p class="small muted" style="margin-top:14px">허용된 권한(scope)</p>
-      <div class="small">${scopes.map(esc).join('<br>') || '-'}</div>
-      <div class="row" style="margin-top:18px">
-        <button class="btn secondary" id="relogin">다시 로그인</button>
-        <button class="btn secondary" id="logout">로그아웃</button>
-      </div>
-    </div>
-    <p class="muted small" style="margin-top:16px">모든 요청은 읽기 전용(GET)이며, 토큰은 이 브라우저의 localStorage에만 저장됩니다.</p>`;
-  document.getElementById('logout').onclick = () => { auth.logout(); location.hash = '#/'; route(); };
-  document.getElementById('relogin').onclick = () => auth.login();
 }
 
 // ---------- router ----------
-async function route() {
-  stopTimers.forEach((f) => f()); stopTimers = [];
-  const raw = location.hash.replace(/^#\/?/, '');
-  const [path, qs = ''] = raw.split('?');
-  const [name, id] = path.split('/');
-  const q = new URLSearchParams(qs);
-
+function route() {
+  cleanup.forEach((f) => f()); cleanup = [];
+  const [path, qs = ''] = location.hash.replace(/^#\/?/, '').split('?');
   const loggedIn = auth.isLoggedIn() && auth.getClientId();
-  $nav.hidden = !loggedIn;
-  document.body.classList.toggle('has-nav', !!loggedIn);
+  $chrome.hidden = !loggedIn;
   if (!loggedIn) return viewSetup();
 
-  const tab = { '': 'home', home: 'home', top: 'top', library: 'library', search: 'search', settings: 'settings' }[name] || '';
-  $nav.querySelectorAll('a').forEach((a) => a.classList.toggle('active', a.dataset.tab === tab));
+  $chrome.querySelectorAll('[data-route]').forEach((a) => a.classList.toggle('on', a.dataset.route === path));
   window.scrollTo(0, 0);
-
-  switch (name) {
-    case '': case 'home': return viewHome();
-    case 'top': return viewTop(q);
-    case 'library': return viewLibrary(q);
-    case 'search': return viewSearch(q);
-    case 'settings': return viewSettings();
-    case 'playlist': return viewPlaylist(id);
-    case 'album': return viewAlbum(id);
-    case 'artist': return viewArtist(id);
-    default: location.hash = '#/home';
-  }
+  if (path === 'top') return viewTop(new URLSearchParams(qs));
+  if (path !== '') { location.replace('#/'); return; }
+  return viewNow();
 }
 
-// Segmented controls navigate via data-href.
-$view.addEventListener('click', (ev) => {
-  const b = ev.target.closest('button[data-href]');
-  if (b) location.hash = b.dataset.href;
-});
-
-window.addEventListener('hashchange', route);
+addEventListener('hashchange', route);
+addEventListener('scroll', () => document.body.classList.toggle('scrolled', scrollY > 8), { passive: true });
 
 (async () => {
-  try {
-    await auth.handleCallback();
-  } catch (e) {
-    viewSetup();
-    $view.insertAdjacentHTML('beforeend', errorHtml(e));
-    return;
-  }
+  try { await auth.handleCallback(); }
+  catch (e) { $chrome.hidden = true; viewSetup(e.message); return; }
+  applyWake();
   route();
 })();

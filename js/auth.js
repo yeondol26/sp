@@ -6,13 +6,10 @@ const TOKEN_URL = 'https://accounts.spotify.com/api/token';
 
 // Read-only scopes. Nothing here allows playback control or library changes.
 export const SCOPES = [
+  'user-read-playback-state',
   'user-read-currently-playing',
   'user-read-recently-played',
   'user-top-read',
-  'playlist-read-private',
-  'playlist-read-collaborative',
-  'user-library-read',
-  'user-follow-read',
 ];
 
 const K = {

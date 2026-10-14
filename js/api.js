@@ -42,7 +42,3 @@ export async function getList(path, params = {}) {
     throw e;
   }
 }
-
-// Playlist objects: Feb 2026 renamed `tracks` → `items` and `track` → `item`. Accept both shapes.
-export const playlistCount = (p) => (p.items ?? p.tracks)?.total;
-export const entryOf = (row) => row?.item ?? row?.track ?? null;
