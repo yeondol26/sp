@@ -9,7 +9,7 @@ export default {
   thumb: { bg: 'linear-gradient(160deg,#2f5560,#16262c)', fg: '#fff', accent: '#ffffff', art: 'mono' },
   css: 'themes/subway.css',
   fonts: 'https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@800&family=Noto+Serif+KR:wght@700;900&display=swap',
-  labels: { playing: '', paused: '잠깐 멈춤…' },
+  labels: { playing: '', paused: '一時停止' },
   // One short line per item, stacked like a message typed line by line.
   markup: () => `
     <section class="np sb">
