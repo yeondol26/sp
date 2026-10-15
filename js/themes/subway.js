@@ -1,5 +1,5 @@
 // Subway — one still scene fills the screen (a night train, filtered like an old TV broadcast).
-// No album art: the title as a subtitle at the bottom, a hairline progress bar along the top edge.
+// No album art: the title as a subtitle at the bottom, the progress bar in the upper part of the screen.
 // The scene is drawn on #bg by themes/subway.css, so the idle and Top screens share it.
 export default {
   id: 'subway',
@@ -13,7 +13,7 @@ export default {
     <section class="np sb">
       <div class="sb-top">
         <div class="sb-bar"><i></i></div>
-        <div class="sb-meta tnum"><span data-slot="cur">0:00</span> / <span data-slot="dur">0:00</span></div>
+        <div class="sb-meta tnum"><span data-slot="cur">0:00</span><span data-slot="dur">0:00</span></div>
       </div>
       <div class="np-inner sb-inner">
         <div class="sb-line" data-swap><span class="sb-title" data-slot="title"></span><span class="sb-artist">— <span data-slot="artist"></span></span></div>
