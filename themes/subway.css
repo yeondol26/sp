@@ -65,7 +65,8 @@ html[data-theme="subway"] .sb-top {
   font-family: var(--sb-font); font-weight: 800; letter-spacing: 0;
   font-size: 16px; line-height: 2.15; color: #fff;
 }
-.sb-k { color: rgba(255,255,255,.5); }            /* the faint word, like "Tracks" */
+.sb-k { color: #fff; }                            /* labels: From / delta time / until END / Synced w/ */
+.sb-v { color: #b4b4b4; }                         /* values (artist, album, times, device): light grey */
 .sb-l[hidden], .sb-status:empty { display: none; }
 .sb-title { font-size: 26px; line-height: 1.5; white-space: normal; }
 .sb-status { color: rgba(255,255,255,.5); }
