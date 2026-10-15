@@ -197,6 +197,14 @@ if (fsEnabled) {
 $out.onclick = () => { if (confirm('로그아웃할까요?')) { auth.logout(); location.hash = '#/'; route(); } };
 
 // ---------- NOW PLAYING ----------
+// Rough visual length of a title, for themes that size type to fit (CSS var --tl).
+// Full-width scripts (Hangul, kana, CJK) count as ~1.8 Latin characters.
+function titleWeight(s = '') {
+  let w = 0;
+  for (const ch of s) w += /[\u1100-\u11ff\u2e80-\u9fff\uac00-\ud7af\uf900-\ufaff\uff00-\uffef]/.test(ch) ? 1.8 : 1;
+  return Math.max(4, Math.round(w));
+}
+
 // "[█████░░░░░]" sized to the element's width in monospace characters.
 function textBar(el, frac) {
   const fs = getComputedStyle(el).fontSize;
@@ -245,7 +253,7 @@ function viewNow() {
     $view.querySelectorAll('[data-slot]').forEach((el) => (slots[el.dataset.slot] ||= []).push(el));
     Object.assign(els, {
       np: $view.querySelector('.np'), inner: $view.querySelector('.np-inner'),
-      imgs: $view.querySelectorAll('.art-stack img'), swap: $view.querySelector('[data-swap]'),
+      imgs: $view.querySelectorAll('.art-stack img'), swaps: $view.querySelectorAll('[data-swap]'),
       deviceShow: $view.querySelectorAll('[data-show="device"]'), clock: $view.querySelector('.mini-clock'),
     });
   };
@@ -327,7 +335,7 @@ function viewNow() {
       shownKey = key;
       swapArt(artOf(it, 600));
       setBackground(artOf(it, 300));
-      if (!first && els.swap) { els.swap.classList.add('out'); await sleep(350); }
+      if (!first && els.swaps.length) { els.swaps.forEach((el) => el.classList.add('out')); await sleep(350); }
       if (mode !== 'playing') return;
       setSlot('title', it.name);
       setSlot('artist', artistsOf(it));
@@ -336,7 +344,8 @@ function viewNow() {
       const year = (it.album?.release_date || it.release_date || '').slice(0, 4);
       setSlot('kicker', [no, year].filter(Boolean).join(' · '));
       document.title = `${it.name} · ${artistsOf(it)}`;
-      els.swap?.classList.remove('out');
+      els.np.style.setProperty('--tl', titleWeight(it.name));
+      els.swaps.forEach((el) => el.classList.remove('out'));
     }
     paintProgress();
   };
