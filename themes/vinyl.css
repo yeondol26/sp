@@ -69,6 +69,10 @@ html[data-theme="vinyl"] .vy-inner {
 
 .vy-disc {
   position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
+  /* Safari doesn't clip a composited (blurred, rotating) child with border-radius + overflow;
+     clip-path does. */
+  clip-path: circle(50% at 50% 50%); -webkit-clip-path: circle(50% at 50% 50%);
+  isolation: isolate;
   background: rgb(var(--pal2, 30 30 34));
   box-shadow: 0 20px 40px -14px rgba(0,0,0,.7);
   animation: vy-spin 1.8s linear infinite;          /* 33⅓ rpm */

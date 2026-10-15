@@ -138,9 +138,14 @@ function setAccentFrom(url) {
       }
       setAccent(!best || best[1] < 0.18 ? [255, 255, 255] : hslToRgb(best[0], Math.min(1, best[1] * 1.15 + 0.1), 0.64));
 
-      const cols = [...bins.values()].sort((a, b) => b.n - a.n).map((b) => [b.r / b.n, b.g / b.n, b.b / b.n]);
+      const total = d.length / 4;
+      const ranked = [...bins.values()].sort((a, b) => b.n - a.n)
+        .map((b) => ({ c: [b.r / b.n, b.g / b.n, b.b / b.n], n: b.n }));
+      const cols = ranked.map((x) => x.c);
       const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
-      const p1 = cols[0];
+      // Lead with a real color when the cover has a decent amount of one (not just white/grey/black).
+      const colorful = ranked.find((x) => { const [, s, l] = rgbToHsl(...x.c); return s > 0.28 && l > 0.15 && l < 0.85 && x.n / total > 0.03; });
+      const p1 = colorful ? colorful.c : cols[0];
       const p2 = cols.find((x) => dist(x, p1) > 90) || cols.find((x) => dist(x, p1) > 40) || p1.map((v) => v * 0.55);
       setPalette(p1, p2);
     } catch { setAccent([255, 255, 255]); setPalette(); }
