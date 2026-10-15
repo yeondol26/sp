@@ -69,6 +69,7 @@ html[data-theme="subway"] .sb-top {
 .sb-title { color: #fff; }                        /* only the song title is white */
 .sb-l[hidden], .sb-status:empty { display: none; }
 .sb-title { font-size: 20.8px; line-height: 1.15; white-space: normal; }
+.sb-from { font-size: 11px; }                     /* the From (album) line: one step smaller */
 .sb-status { color: rgba(255,255,255,.5); }
 .sb-bar { margin: 8px 0 6px; height: 2px; background: rgba(255,255,255,.28); }
 .sb-bar i { display: block; height: 100%; width: calc(var(--p, 0) * 100%); background: #fff; transition: width var(--p-dur, 1s) linear; }
@@ -82,12 +83,14 @@ html[data-theme="subway"] .sb-top {
   }
   .sb-l { font-size: 18px; }
   .sb-title { font-size: 32px; }
+  .sb-from { font-size: 16px; }
 }
 /* iPhone landscape: a bit tighter so the stack fits the short screen */
 @media (orientation: landscape) and (max-height: 500px) {
   html[data-theme="subway"] .sb-top { top: calc(var(--sa-t) + 60px); left: calc(40px + var(--sa-l)); max-width: calc(100vw - 80px - var(--sa-l) - var(--sa-r)); }
   .sb-l { font-size: 11.2px; }
   .sb-title { font-size: 17.6px; }
+  .sb-from { font-size: 10px; }
 }
 
 /* ---------- shared pieces ---------- */

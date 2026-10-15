@@ -17,7 +17,7 @@ export default {
         <div class="sb-head" data-swap>
           <div class="sb-l sb-title" data-slot="title"></div>
           <div class="sb-l sb-v" data-slot="artist"></div>
-          <div class="sb-l"><span class="sb-k">From</span> <span class="sb-v" data-slot="albumyear"></span></div>
+          <div class="sb-l sb-from"><span class="sb-k">From</span> <span class="sb-v" data-slot="albumyear"></span></div>
         </div>
         <div class="sb-bar"><i></i></div>
         <div class="sb-l tnum"><span class="sb-k">delta time</span> <span class="sb-v" data-slot="cur">0:00</span></div>
