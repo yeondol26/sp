@@ -1,19 +1,21 @@
-/* Vinyl theme. Everything is scoped to html[data-theme="vinyl"]. */
+/* Vinyl theme. Everything is scoped to html[data-theme="vinyl"] or .vy-* classes.
+   --pal1 / --pal2 are the cover's two dominant colors ('r g b'), set by the app. */
 html[data-theme="vinyl"] {
   --vy-ink: #f6efe4;
   --vy-dim: #cdbfae;
-  --vy-faint: #95877a;
+  --vy-faint: #9a8c7e;
   --vy-serif: "Fraunces", "Noto Serif KR", "Apple SD Gothic Neo", serif;
+  --vy-sans: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", system-ui, sans-serif;
 }
 
-/* warm room light, tinted by the artwork's accent color */
+/* room light tinted by the cover */
 html[data-theme="vinyl"] #bg .layer,
 html[data-theme="vinyl"] #bg .veil { display: none; }
 html[data-theme="vinyl"] #bg {
   background:
-    radial-gradient(60% 55% at 30% 50%, rgb(var(--accent) / .16), transparent 70%),
-    radial-gradient(120% 100% at 30% 45%, #2e2119 0%, #17110c 55%, #0b0806 100%);
-  transition: background 1.5s;
+    radial-gradient(55% 60% at 28% 50%, rgb(var(--pal1, 80 60 50) / .28), transparent 70%),
+    radial-gradient(45% 50% at 75% 60%, rgb(var(--pal2, 40 30 25) / .22), transparent 70%),
+    radial-gradient(120% 100% at 30% 45%, #241a14 0%, #15100c 55%, #0b0806 100%);
 }
 
 /* ---------- layout ---------- */
@@ -21,115 +23,151 @@ html[data-theme="vinyl"] .vy-inner {
   width: 100%; max-width: 1400px;
   display: grid; grid-template-columns: 1fr; justify-items: center; align-items: center;
   gap: clamp(28px, 5vh, 56px);
-  --rs: min(80vw, 44vh, 560px);           /* record size */
+  --s: min(52vw, 32vh, 440px);              /* sleeve size */
   transition: transform 3s var(--ease);
 }
 @media (orientation: landscape) and (min-width: 700px) {
   html[data-theme="vinyl"] .vy-inner {
     grid-template-columns: auto minmax(0, 1fr); justify-items: start;
     gap: clamp(40px, 6vw, 96px);
-    --rs: min(72vh, 42vw, 660px);
+    --s: min(56vh, 29vw, 560px);
   }
 }
 @media (orientation: landscape) and (max-height: 500px) {
-  html[data-theme="vinyl"] .vy-inner { --rs: min(64vh, 38vw); gap: 32px; }
+  html[data-theme="vinyl"] .vy-inner { --s: min(56vh, 24vw); gap: 36px; }
 }
 
-/* ---------- turntable ---------- */
-.vy-deck { position: relative; width: calc(var(--rs) * 1.16); height: var(--rs); }
+/* ---------- sleeve + record ---------- */
+.vy-deck { position: relative; width: calc(var(--s) * 1.6); height: var(--s); }
+
+.vy-sleeve {
+  position: absolute; left: 0; top: 0; z-index: 2; width: var(--s); height: var(--s);
+  background: #2a211b; overflow: hidden; border-radius: 3px;
+  box-shadow: 14px 0 28px -6px rgba(0,0,0,.55), 0 30px 60px -20px rgba(0,0,0,.8);
+}
+.vy-sleeve img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  opacity: 0; transition: opacity .9s var(--ease);
+}
+.vy-sleeve img.on { opacity: 1; }
+/* cardboard edge + soft light across the cover; darker lip on the opening side */
+.vy-sleeve-edge {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(to left, rgba(0,0,0,.28), transparent 5%),
+    linear-gradient(115deg, rgba(255,255,255,.10), transparent 38%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.07);
+}
+
 .vy-record {
-  position: absolute; left: 0; top: 0; width: var(--rs); height: var(--rs); border-radius: 50%;
-  background: #0d0d0d;
-  box-shadow: 0 34px 70px -18px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.04), inset 0 0 0 calc(var(--rs) * .012) #080808;
+  position: absolute; z-index: 1; top: calc(var(--s) * .03);
+  left: 0; width: calc(var(--s) * .94); height: calc(var(--s) * .94);
+  transform: translateX(calc(var(--s) * .63));
+  transition: transform 1.4s var(--ease);
 }
+.np.paused .vy-record { transform: translateX(calc(var(--s) * .14)); }
+
+.vy-disc {
+  position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
+  background: rgb(var(--pal2, 30 30 34));
+  box-shadow: 0 20px 40px -14px rgba(0,0,0,.7);
+  animation: vy-spin 1.8s linear infinite;          /* 33⅓ rpm */
+}
+.np.paused .vy-disc { animation-play-state: paused; }
+@keyframes vy-spin { to { transform: rotate(360deg); } }
+
+/* marbled colored vinyl from the cover's two colors */
+.vy-marble {
+  position: absolute; inset: -18%;
+  background: conic-gradient(from 20deg,
+    rgb(var(--pal1, 80 80 86)) 0deg,
+    rgb(var(--pal2, 30 30 34)) 50deg,
+    color-mix(in srgb, rgb(var(--pal1, 80 80 86)) 70%, white) 95deg,
+    rgb(var(--pal1, 80 80 86)) 140deg,
+    rgb(var(--pal2, 30 30 34)) 200deg,
+    color-mix(in srgb, rgb(var(--pal2, 30 30 34)) 60%, white) 245deg,
+    rgb(var(--pal1, 80 80 86)) 290deg,
+    rgb(var(--pal2, 30 30 34)) 330deg,
+    rgb(var(--pal1, 80 80 86)) 360deg);
+  filter: blur(calc(var(--s) * .045)) saturate(1.25);
+}
+/* grooves, lead-in edge and the smooth run-out ring around the label */
 .vy-grooves {
-  position: absolute; inset: 2.5%; border-radius: 50%;
-  background: repeating-radial-gradient(circle at 50% 50%, #121212 0 1.5px, #1d1d1d 1.5px 2.5px, #111 2.5px 3.5px);
-}
-/* static reflection: stays put while the record turns underneath */
-.vy-sheen {
-  position: absolute; inset: 0; border-radius: 50%; z-index: 2; pointer-events: none;
-  background: conic-gradient(from 25deg, transparent 0deg, rgba(255,255,255,.10) 28deg, transparent 62deg,
-    transparent 205deg, rgba(255,255,255,.07) 235deg, transparent 268deg);
+  position: absolute; inset: 0; border-radius: 50%;
+  background:
+    radial-gradient(circle, transparent 0 33%, rgba(0,0,0,.28) 33.4% 35.5%, transparent 36%),
+    radial-gradient(circle, transparent 0 95.5%, rgba(255,255,255,.18) 96%, rgba(0,0,0,.35) 97.5%, rgba(0,0,0,.55) 100%),
+    repeating-radial-gradient(circle, rgba(0,0,0,.14) 0 1px, rgba(255,255,255,.05) 1px 2px, transparent 2px 3.5px);
+  mix-blend-mode: multiply;
 }
 .vy-label {
-  position: absolute; left: 32%; top: 32%; width: 36%; height: 36%; border-radius: 50%; overflow: hidden; z-index: 1;
-  background: #2a1f18;
-  animation: vy-spin 1.8s linear infinite;   /* 33⅓ rpm */
+  position: absolute; left: 33%; top: 33%; width: 34%; height: 34%; border-radius: 50%; overflow: hidden;
+  background: #2a211b; box-shadow: 0 0 0 calc(var(--s) * .006) rgba(0,0,0,.35);
 }
 .vy-label img {
-  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
   opacity: 0; transition: opacity .9s var(--ease);
 }
 .vy-label img.on { opacity: 1; }
+/* static light reflection (doesn't turn with the record) */
+.vy-sheen {
+  position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: conic-gradient(from 30deg, transparent 0deg, rgba(255,255,255,.22) 22deg, transparent 55deg,
+    transparent 210deg, rgba(255,255,255,.16) 235deg, transparent 265deg);
+  mix-blend-mode: soft-light;
+}
 .vy-hole {
-  position: absolute; left: 50%; top: 50%; width: 2.6%; height: 2.6%; margin: -1.3% 0 0 -1.3%; z-index: 3;
-  border-radius: 50%; background: #c9c2b6; box-shadow: 0 0 0 calc(var(--rs) * .006) #0b0806;
-}
-@keyframes vy-spin { to { transform: rotate(360deg); } }
-.np.paused .vy-label { animation-play-state: paused; }
-
-/* tonearm: pivots top-right of the platter; creeps inward with progress; lifts off when paused */
-.vy-pivot {
-  position: absolute; z-index: 4; left: calc(var(--rs) * 1.02); top: calc(var(--rs) * .04);
-  width: calc(var(--rs) * .1); height: calc(var(--rs) * .1); margin: calc(var(--rs) * -.05) 0 0 calc(var(--rs) * -.05);
-  border-radius: 50%; background: radial-gradient(circle at 40% 35%, #efe9df, #8f8a82 70%, #5e5a54);
-  box-shadow: 0 6px 16px rgba(0,0,0,.6);
-}
-.vy-arm {
-  position: absolute; z-index: 3; left: calc(var(--rs) * 1.02); top: calc(var(--rs) * .04);
-  width: 0; height: calc(var(--rs) * .62);
-  transform-origin: 0 0;
-  transform: rotate(calc(20deg + var(--p, 0) * 13deg));
-  transition: transform 1.4s var(--ease);
-}
-.np.paused .vy-arm { transform: rotate(3deg); }
-.vy-rod {
-  position: absolute; left: calc(var(--rs) * -.009); top: 0; width: calc(var(--rs) * .018); height: 100%;
-  border-radius: 99px; background: linear-gradient(to right, #a7a197, #f1ece4, #8f8a82);
-  box-shadow: 6px 8px 12px rgba(0,0,0,.45);
-}
-.vy-head {
-  position: absolute; left: calc(var(--rs) * -.03); bottom: calc(var(--rs) * -.07);
-  width: calc(var(--rs) * .06); height: calc(var(--rs) * .09); border-radius: 4px;
-  background: linear-gradient(#3a3631, #1f1c19); box-shadow: 6px 8px 12px rgba(0,0,0,.5);
+  position: absolute; left: 50%; top: 50%; width: 2.4%; height: 2.4%; margin: -1.2% 0 0 -1.2%;
+  border-radius: 50%; background: #120d0a;
 }
 
-/* ---------- text ---------- */
-.vy-meta { width: 100%; max-width: min(84vw, 620px); text-align: center; min-width: 0; }
+/* ---------- liner-note type ---------- */
+.vy-meta { width: 100%; max-width: min(84vw, 560px); text-align: center; min-width: 0; }
 @media (orientation: landscape) and (min-width: 700px) { .vy-meta { text-align: left; } }
-.vy-kicker {
-  font-size: 12px; letter-spacing: .3em; text-transform: uppercase; color: rgb(var(--accent));
-  min-height: 1em; font-family: -apple-system, system-ui, sans-serif; font-weight: 600;
+.vy-side {
+  font-family: var(--vy-sans); font-size: 11px; font-weight: 600; letter-spacing: .32em; text-transform: uppercase;
+  color: rgb(var(--accent));
 }
+.vy-dash { display: inline-block; width: 22px; height: 1px; margin: 0 8px; vertical-align: middle; background: currentColor; opacity: .7; }
 .vy-title {
-  margin-top: 18px; font-family: var(--vy-serif); font-style: italic; font-weight: 400;
-  font-size: clamp(30px, 5vw, 68px); line-height: 1.04; color: var(--vy-ink); letter-spacing: -.01em;
+  margin-top: 16px; font-family: var(--vy-serif); font-weight: 600; font-style: normal;
+  font-size: clamp(24px, 3.9vw, 52px); line-height: 1.06; letter-spacing: -.015em; color: var(--vy-ink);
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-wrap: balance;
 }
-.vy-artist { margin-top: 14px; font-family: var(--vy-serif); font-size: clamp(18px, 2.3vw, 26px); color: var(--vy-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.vy-album { margin-top: 4px; font-size: clamp(13px, 1.4vw, 16px); color: var(--vy-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.vy-progress { margin-top: clamp(24px, 4vh, 44px); }
-.vy-line { position: relative; height: 1px; background: rgba(246,239,228,.25); }
-.vy-line i { position: absolute; left: 0; top: 0; height: 1px; width: calc(var(--p, 0) * 100%); background: rgb(var(--accent)); transition: width 1s linear; }
-.vy-line b {
-  position: absolute; top: -4px; left: calc(var(--p, 0) * 100%); width: 9px; height: 9px; margin-left: -4.5px;
-  border-radius: 50%; background: rgb(var(--accent)); transition: left 1s linear;
+.vy-artist {
+  margin-top: 10px; font-family: var(--vy-serif); font-style: italic; font-weight: 400;
+  font-size: clamp(15px, 1.8vw, 21px); color: var(--vy-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.vy-times { display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px; color: var(--vy-faint); }
-.vy-status { margin-top: 18px; font-family: var(--vy-serif); font-style: italic; font-size: 15px; color: var(--vy-faint); }
+.vy-rule { width: 44px; height: 1px; margin: 18px auto 12px; background: rgba(246,239,228,.3); }
+@media (orientation: landscape) and (min-width: 700px) { .vy-rule { margin-left: 0; } }
+.vy-album {
+  font-family: var(--vy-sans); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--vy-faint);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.vy-progress { margin-top: clamp(22px, 3.6vh, 38px); }
+.vy-line { position: relative; height: 1px; background: rgba(246,239,228,.2); }
+.vy-line i { position: absolute; left: 0; top: 0; height: 1px; width: calc(var(--p, 0) * 100%); background: rgb(var(--accent)); transition: width 1s linear; }
+.vy-times { display: flex; justify-content: space-between; margin-top: 8px; font-family: var(--vy-sans); font-size: 11px; color: var(--vy-faint); }
+.vy-status {
+  margin-top: 16px; font-family: var(--vy-sans); font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--vy-faint);
+  display: inline-flex; align-items: center; gap: 8px;
+}
 .vy-status [hidden] { display: none; }
+.vy-dot { width: 6px; height: 6px; border-radius: 50%; background: rgb(var(--accent)); animation: vy-pulse 2s ease-in-out infinite; }
+.np.paused .vy-dot { background: var(--vy-faint); animation: none; }
+@keyframes vy-pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .vy-disc, .vy-dot { animation: none; } }
 
 /* ---------- shared pieces ---------- */
-html[data-theme="vinyl"] .mini-clock { font-family: var(--vy-serif); font-style: italic; font-size: 16px; color: var(--vy-faint); }
+html[data-theme="vinyl"] .mini-clock { font-family: var(--vy-serif); font-style: italic; font-size: 15px; color: var(--vy-faint); }
 html[data-theme="vinyl"] .big-clock { font-family: var(--vy-serif); font-weight: 300; font-style: italic; color: var(--vy-ink); }
 html[data-theme="vinyl"] .big-date { font-family: var(--vy-serif); color: var(--vy-dim); }
 html[data-theme="vinyl"] .last { background: rgba(246,239,228,.06); }
-html[data-theme="vinyl"] .last img { border-radius: 50%; }
 
 /* Top page */
 html[data-theme="vinyl"] .top-head h1,
 html[data-theme="vinyl"] .hero1 .name { font-family: var(--vy-serif); font-weight: 600; letter-spacing: -.02em; }
 html[data-theme="vinyl"] .top-head h1 span { font-style: italic; font-weight: 400; }
 html[data-theme="vinyl"] .rcard .num { font-family: var(--vy-serif); font-style: italic; font-weight: 400; -webkit-text-stroke: 1.5px rgba(246,239,228,.55); }
-html[data-theme="vinyl"] .hero1 .rank { font-family: -apple-system, system-ui, sans-serif; }
+html[data-theme="vinyl"] .hero1 .rank { font-family: var(--vy-sans); }

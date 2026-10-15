@@ -7,12 +7,13 @@
 //   fonts                 Google Fonts css2 URL
 //   labels                { playing, paused } status text
 //   markup()              Now Playing HTML. The app fills these hooks:
-//     [data-slot=title|artist|album|status|device|kicker|cur|dur|pct|textbar]  text
+//     [data-slot=title|artist|album|albumyear|status|device|kicker|trackno|year|cur|dur|pct|textbar]  text
+//     CSS vars on :root: --accent (vivid), --pal1/--pal2 (two dominant cover colors), all 'r g b'
 //     [data-show=device]   hidden when no device name
 //     [data-swap]          faded out/in on track change (any number)
 //     [data-fit]           title box sized to fit: its CSS font-size is the max, --fit-min the floor;
 //                          contains [data-slot=title] and optionally a [data-fit-suffix]
-//     .art-stack > img×2   artwork crossfade
+//     .art-stack > img×2   artwork crossfade (any number of stacks)
 //     .np                  gets .paused and CSS var --p (0..1 progress)
 //     .np-inner            nudged a few px every minute (anti burn-in)
 const DEVICE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></svg>';

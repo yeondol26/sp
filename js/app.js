@@ -111,31 +111,47 @@ function setBackground(url) {
   setAccentFrom(url);
 }
 
-// Pick a vivid color from the artwork for the progress bar / highlights.
-// Needs the image CDN to allow CORS; if it doesn't, we silently keep white.
+// Read colors from the artwork: --accent (most vivid, for highlights) and a two-color
+// palette --pal1/--pal2 (the dominant colors, for themes that tint with the cover).
+// Needs the image CDN to allow CORS; if it doesn't, we silently keep neutral colors.
 function setAccentFrom(url) {
   const img = new Image();
   img.crossOrigin = 'anonymous';
   img.onload = () => {
     try {
       const c = document.createElement('canvas');
-      c.width = c.height = 24;
+      c.width = c.height = 32;
       const ctx = c.getContext('2d', { willReadFrequently: true });
-      ctx.drawImage(img, 0, 0, 24, 24);
-      const d = ctx.getImageData(0, 0, 24, 24).data;
+      ctx.drawImage(img, 0, 0, 32, 32);
+      const d = ctx.getImageData(0, 0, 32, 32).data;
       let best = null, bestScore = -1;
+      const bins = new Map();
       for (let i = 0; i < d.length; i += 4) {
         const [h, s, l] = rgbToHsl(d[i], d[i + 1], d[i + 2]);
         const score = s * (1 - Math.abs(l - 0.55) * 1.6);
         if (score > bestScore) { bestScore = score; best = [h, s, l]; }
+        // 4-bit-per-channel buckets; average the real colors inside each bucket.
+        const key = (d[i] >> 4) << 8 | (d[i + 1] >> 4) << 4 | (d[i + 2] >> 4);
+        const b = bins.get(key) || { n: 0, r: 0, g: 0, b: 0 };
+        b.n++; b.r += d[i]; b.g += d[i + 1]; b.b += d[i + 2];
+        bins.set(key, b);
       }
-      if (!best || best[1] < 0.18) { setAccent([255, 255, 255]); return; }
-      setAccent(hslToRgb(best[0], Math.min(1, best[1] * 1.15 + 0.1), 0.64));
-    } catch { setAccent([255, 255, 255]); }
+      setAccent(!best || best[1] < 0.18 ? [255, 255, 255] : hslToRgb(best[0], Math.min(1, best[1] * 1.15 + 0.1), 0.64));
+
+      const cols = [...bins.values()].sort((a, b) => b.n - a.n).map((b) => [b.r / b.n, b.g / b.n, b.b / b.n]);
+      const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+      const p1 = cols[0];
+      const p2 = cols.find((x) => dist(x, p1) > 90) || cols.find((x) => dist(x, p1) > 40) || p1.map((v) => v * 0.55);
+      setPalette(p1, p2);
+    } catch { setAccent([255, 255, 255]); setPalette(); }
   };
-  img.onerror = () => setAccent([255, 255, 255]);
+  img.onerror = () => { setAccent([255, 255, 255]); setPalette(); };
   img.src = url;
 }
+const setPalette = (a = [70, 70, 76], b = [30, 30, 34]) => {
+  document.documentElement.style.setProperty('--pal1', a.map(Math.round).join(' '));
+  document.documentElement.style.setProperty('--pal2', b.map(Math.round).join(' '));
+};
 const setAccent = ([r, g, b]) => document.documentElement.style.setProperty('--accent', `${r} ${g} ${b}`);
 function rgbToHsl(r, g, b) {
   r /= 255; g /= 255; b /= 255;
@@ -326,7 +342,7 @@ function viewNow() {
     $view.querySelectorAll('[data-slot]').forEach((el) => (slots[el.dataset.slot] ||= []).push(el));
     Object.assign(els, {
       np: $view.querySelector('.np'), inner: $view.querySelector('.np-inner'),
-      imgs: $view.querySelectorAll('.art-stack img'), swaps: $view.querySelectorAll('[data-swap]'),
+      stacks: $view.querySelectorAll('.art-stack'), swaps: $view.querySelectorAll('[data-swap]'),
       deviceShow: $view.querySelectorAll('[data-show="device"]'), clock: $view.querySelector('.mini-clock'),
       fits: $view.querySelectorAll('[data-fit]'),
     });
@@ -386,9 +402,16 @@ function viewNow() {
 
   const swapArt = (url) => {
     if (!url) return;
-    const next = els.imgs[artIdx ^ 1], cur = els.imgs[artIdx];
-    next.onload = () => { next.classList.add('on'); cur.classList.remove('on'); artIdx ^= 1; };
-    next.src = url;
+    // Every .art-stack (a theme may show the cover more than once) crossfades its own pair.
+    const k = artIdx ^ 1;
+    artIdx = k;
+    els.stacks.forEach((stack) => {
+      const [a, b] = stack.querySelectorAll(':scope > img');
+      const next = k ? b : a, cur = k ? a : b;
+      if (!next || !cur) return;
+      next.onload = () => { next.classList.add('on'); cur.classList.remove('on'); };
+      next.src = url;
+    });
   };
 
   const render = async () => {
@@ -419,6 +442,9 @@ function viewNow() {
       const no = it.track_number ? `Track ${String(it.track_number).padStart(2, '0')}` : '';
       const year = (it.album?.release_date || it.release_date || '').slice(0, 4);
       setSlot('kicker', [no, year].filter(Boolean).join(' · '));
+      setSlot('trackno', it.track_number ? String(it.track_number).padStart(2, '0') : '—');
+      setSlot('year', year);
+      setSlot('albumyear', [it.album?.name || it.show?.publisher || '', year].filter(Boolean).join(' · '));
       document.title = `${it.name} · ${artistsOf(it)}`;
       els.swaps.forEach((el) => el.classList.remove('out'));
     }

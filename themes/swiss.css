@@ -63,20 +63,20 @@ html[data-theme="swiss"] .sw-inner {
    The font-size here is the MAXIMUM it may grow to; --fit-min is the smallest before it wraps freely. */
 .sw-title {
   font-weight: 900; letter-spacing: -.05em; line-height: .94; color: var(--sw-ink);
-  font-size: min(20vw, 9vh);
+  font-size: min(16vw, 7.2vh);
   max-height: 24vh;
   --fit-min: 22px;
   word-break: keep-all; overflow-wrap: anywhere;
 }
 .sw-title[data-script="cjk"] { line-height: 1.12; letter-spacing: -.02em; }
 @media (orientation: landscape) and (min-width: 700px) {
-  .sw-title { font-size: min(14vw, 22vh); max-height: 34vh; --fit-min: 36px; }
+  .sw-title { font-size: min(11.2vw, 17.6vh); max-height: 34vh; --fit-min: 36px; }
 }
 @media (orientation: landscape) and (max-height: 500px) {
-  .sw-title { font-size: min(9vw, 13vh); max-height: 22vh; --fit-min: 22px; margin: 10px 0 14px; }
+  .sw-title { font-size: min(7.2vw, 10.4vh); max-height: 22vh; --fit-min: 22px; margin: 10px 0 14px; }
   .sw-l3 { grid-column: 7 / 10; }
   .sw-art { grid-column: 10 / 13; width: min(30vh, 22vw); }
-  .sw-times { font-size: 26px; margin-top: 6px; }
+  .sw-times { font-size: 21px; margin-top: 6px; }
 }
 .sw-dot { color: var(--sw-red); }
 
@@ -96,7 +96,7 @@ html[data-theme="swiss"] .sw-inner {
   background: var(--sw-red); transition: width 1s linear;
 }
 .np.paused .sw-line i { background: var(--sw-ink); }
-.sw-times { display: flex; justify-content: space-between; align-items: baseline; margin-top: 12px; font-size: clamp(26px, 4vw, 48px); font-weight: 700; letter-spacing: -.03em; }
+.sw-times { display: flex; justify-content: space-between; align-items: baseline; margin-top: 12px; font-size: clamp(21px, 3.2vw, 38px); font-weight: 700; letter-spacing: -.03em; }
 
 /* ---------- shared pieces ---------- */
 /* the corner clock would collide with the big timestamps */
@@ -124,4 +124,4 @@ html[data-theme="swiss"] .row:not(.round) img { border-radius: 0; }
 html[data-theme="swiss"] .hero1 .pic img,
 html[data-theme="swiss"] .rcard img { box-shadow: none; }
 html[data-theme="swiss"] .rcard .num { -webkit-text-stroke: 2px rgba(17,17,17,.8); }
-@media (max-width: 430px) { .sw-times { font-size: 32px; } }
+@media (max-width: 430px) { .sw-times { font-size: 26px; } }
