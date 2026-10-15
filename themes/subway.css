@@ -28,9 +28,8 @@ html[data-theme="subway"] #bg::before {
 html[data-theme="subway"] #bg .veil {
   background:
     repeating-linear-gradient(to bottom, rgba(0,0,0,.07) 0 1px, transparent 1px 3px),
-    linear-gradient(to top, rgba(0,0,0,.62) 0%, rgba(0,0,0,.25) 22%, transparent 40%),
-    linear-gradient(to bottom, rgba(0,0,0,.5) 0%, rgba(0,0,0,.2) 16%, transparent 26%),
-    radial-gradient(120% 95% at 50% 45%, transparent 55%, rgba(0,0,0,.55) 100%);
+    linear-gradient(to bottom, rgba(0,0,0,.62) 0, rgba(0,0,0,.4) 120px, rgba(0,0,0,.12) 220px, transparent 300px),
+    radial-gradient(120% 95% at 50% 45%, transparent 55%, rgba(0,0,0,.5) 100%);
 }
 /* film grain, jittered a few times a second */
 html[data-theme="subway"] #bg .grain {
@@ -49,46 +48,38 @@ html[data-theme="subway"][data-view="top"] #bg::before { filter: blur(2px) satur
   html[data-theme="subway"] #bg::before, html[data-theme="subway"] #bg .grain { animation: none; }
 }
 
-/* ---------- subtitle ---------- */
-html[data-theme="subway"] .np.sb {
-  place-items: end center;
-  padding-bottom: calc(clamp(28px, 6vh, 64px) + var(--sa-b));
-}
-html[data-theme="subway"] .sb-inner {
-  width: min(88vw, 960px); display: block; text-align: center;
-  justify-items: normal;   /* base .np-inner sets start, which newer engines apply to block children too */
-  text-shadow: 0 1px 2px rgba(0,0,0,.9), 0 0 18px rgba(0,0,0,.6);
+/* ---------- top line (mockup layout) ---------- */
+html[data-theme="subway"] .np.sb { display: block; padding: 0; }
+html[data-theme="subway"] .sb-top {
+  position: fixed; z-index: 2; display: block; width: auto; max-width: none;
+  justify-self: stretch; justify-items: normal;   /* undo the base .np-inner centering/shrinking */
+  top: calc(var(--sa-t) + 76px); left: calc(56px + var(--sa-l)); right: calc(56px + var(--sa-r));
+  /* strong but soft shadow so white text reads on any part of the scene */
+  text-shadow: 0 1px 2px rgba(0,0,0,.85), 0 1px 10px rgba(0,0,0,.55);
   transition: transform 3s var(--ease);
 }
+.sb-row { display: flex; justify-content: space-between; align-items: baseline; gap: 24px; }
 .sb-line {
-  color: #fff; font-family: var(--sb-font); font-weight: 800;
-  font-size: clamp(20px, 2.7vw, 36px); line-height: 1.3; letter-spacing: .01em;
-  /* two lines max (a plain block, so the line stays centered) */
-  display: block; max-height: 2.6em; overflow: hidden; text-wrap: balance;
+  min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-family: var(--sb-font); font-weight: 800; font-size: clamp(20px, 2.2vw, 28px); color: #fff;
 }
-.sb-artist {
-  margin-left: .5em; font-family: var(--sb-sans); font-weight: 400; font-size: .58em;
-  color: rgba(255,255,255,.78); letter-spacing: .02em; white-space: nowrap;
+.sb-artist { font-family: var(--sb-sans); font-weight: 400; font-size: .65em; color: rgba(255,255,255,.82); }
+.sb-time { flex: none; font-family: var(--sb-sans); font-size: 15px; color: rgba(255,255,255,.82); }
+.sb-bar { margin-top: 10px; height: 2px; background: rgba(255,255,255,.28); box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+.sb-bar i { display: block; height: 100%; width: calc(var(--p, 0) * 100%); background: #fff; transition: width var(--p-dur, 1s) linear; }
+.np.paused .sb-bar i { background: rgba(255,255,255,.55); }
+.sb-times { display: none; justify-content: space-between; margin-top: 6px; font-family: var(--sb-sans); font-size: 12px; color: rgba(255,255,255,.82); }
+/* phone portrait: narrower margins, times under the bar */
+@media (orientation: portrait) and (max-width: 600px) {
+  html[data-theme="subway"] .sb-top { left: calc(28px + var(--sa-l)); right: calc(28px + var(--sa-r)); }
+  .sb-line { font-size: 22px; }
+  .sb-artist { font-size: 14px; }
+  .sb-time { display: none; }
+  .sb-times { display: flex; }
 }
-/* progress: in the upper part of the screen, just below the floating controls */
-.sb-top {
-  position: fixed; z-index: 2; top: calc(var(--sa-t) + 72px);
-  left: 50%; width: min(88vw, 960px); transform: translateX(-50%);
-  pointer-events: none; text-shadow: 0 1px 3px rgba(0,0,0,.9);
+@media (orientation: landscape) and (max-height: 500px) {
+  html[data-theme="subway"] .sb-top { top: calc(var(--sa-t) + 64px); }
 }
-.sb-bar { height: 3px; border-radius: 2px; background: rgba(255,255,255,.22); overflow: hidden; }
-.sb-bar i {
-  display: block; height: 100%; width: calc(var(--p, 0) * 100%); background: #fff;
-  box-shadow: 0 0 10px rgba(255,255,255,.6); transition: width var(--p-dur, 1s) linear;
-}
-.np.paused .sb-bar i { background: rgba(255,255,255,.5); box-shadow: none; }
-.sb-meta {
-  margin-top: 8px; display: flex; justify-content: space-between;
-  font-family: var(--sb-sans); font-size: 13px; letter-spacing: .04em; color: rgba(255,255,255,.8);
-}
-@media (orientation: landscape) and (max-height: 500px) { .sb-top { top: calc(var(--sa-t) + 60px); } }
-.sb-status { margin-top: 8px; min-height: 1em; font-family: var(--sb-font); font-size: 14px; letter-spacing: .2em; color: #fff; }
-.sb-status:empty { display: none; }
 
 /* ---------- shared pieces ---------- */
 html[data-theme="subway"] .np.sb ~ .mini-clock { display: none; }   /* keep the scene clean */
