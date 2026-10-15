@@ -1,5 +1,5 @@
 // Swiss — International Typographic Style: paper ground, one red, a strict grid,
-// and the song title set as large as it fits (sized from --tl).
+// and the song title set as large as it fits: one line, or two balanced lines ([data-fit]).
 export default {
   id: 'swiss',
   name: 'Swiss',
@@ -15,7 +15,7 @@ export default {
         <div class="sw-l2" data-swap><span data-slot="artist"></span><span class="sw-dim" data-slot="album"></span></div>
         <div class="sw-l3 sw-dim"><span data-slot="kicker"></span><span data-show="device" data-slot="device"></span></div>
         <div class="sw-art art-stack" aria-hidden="true"><img alt=""><img alt=""></div>
-        <div class="sw-title" data-swap><span data-slot="title"></span><span class="sw-dot">.</span></div>
+        <div class="sw-title" data-swap data-fit><span data-slot="title"></span><span class="sw-dot" data-fit-suffix>.</span></div>
         <div class="sw-progress">
           <div class="sw-line"><i></i></div>
           <div class="sw-times tnum"><span data-slot="cur">0:00</span><span class="sw-dim" data-slot="dur">0:00</span></div>

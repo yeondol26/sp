@@ -59,18 +59,21 @@ html[data-theme="swiss"] .sw-inner {
 .sw-l2 > span:first-child { font-weight: 700; color: var(--sw-ink); }
 .sw-dim { color: var(--sw-dim); }
 
-/* Title fills the space it's given: size from visual length (--tl), capped by width and height. */
+/* Title is fitted by the app ([data-fit]): one line if it fits large, otherwise two balanced lines.
+   The font-size here is the MAXIMUM it may grow to; --fit-min is the smallest before it wraps freely. */
 .sw-title {
   font-weight: 900; letter-spacing: -.05em; line-height: .94; color: var(--sw-ink);
-  font-size: clamp(30px, calc(400vw / var(--tl, 10)), min(18vw, 8vh));
-  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  font-size: min(20vw, 9vh);
+  max-height: 24vh;
+  --fit-min: 22px;
   word-break: keep-all; overflow-wrap: anywhere;
 }
+.sw-title[data-script="cjk"] { line-height: 1.12; letter-spacing: -.02em; }
 @media (orientation: landscape) and (min-width: 700px) {
-  .sw-title { font-size: clamp(40px, calc(300vw / var(--tl, 10)), min(13vw, 22vh)); -webkit-line-clamp: 2; }
+  .sw-title { font-size: min(14vw, 22vh); max-height: 34vh; --fit-min: 36px; }
 }
 @media (orientation: landscape) and (max-height: 500px) {
-  .sw-title { font-size: clamp(26px, calc(280vw / var(--tl, 10)), min(9vw, 13vh)); margin: 10px 0 14px; }
+  .sw-title { font-size: min(9vw, 13vh); max-height: 22vh; --fit-min: 22px; margin: 10px 0 14px; }
   .sw-l3 { grid-column: 7 / 10; }
   .sw-art { grid-column: 10 / 13; width: min(30vh, 22vw); }
   .sw-times { font-size: 26px; margin-top: 6px; }

@@ -197,12 +197,79 @@ if (fsEnabled) {
 $out.onclick = () => { if (confirm('로그아웃할까요?')) { auth.logout(); location.hash = '#/'; route(); } };
 
 // ---------- NOW PLAYING ----------
-// Rough visual length of a title, for themes that size type to fit (CSS var --tl).
-// Full-width scripts (Hangul, kana, CJK) count as ~1.8 Latin characters.
-function titleWeight(s = '') {
-  let w = 0;
-  for (const ch of s) w += /[\u1100-\u11ff\u2e80-\u9fff\uac00-\ud7af\uf900-\ufaff\uff00-\uffef]/.test(ch) ? 1.8 : 1;
-  return Math.max(4, Math.round(w));
+// ---------- fitted titles ----------
+// Characters that must not start a line (Japanese kinsoku + closing punctuation).
+const NO_LINE_START = /[ー－ｰ〜～、。，．・：；！？」』）】〉》〕ぁぃぅぇぉっゃゅょゎゕゖァィゥェォッャュョヮヵヶㇰ-ㇿ々ゝゞヽヾ)\]}.,!?:;%'"’”]/;
+const NO_LINE_END = /[「『（【〈《〔(\[{'"‘“]/;
+
+// Size a [data-fit] box so its title is one line if that is large enough, otherwise two lines
+// broken where the two halves come out closest in width. Its CSS font-size is the maximum,
+// its max-height (optional) the height budget, --fit-min the smallest size before free wrapping.
+function fitTitle(box, title) {
+  const slot = box.querySelector('[data-slot="title"]');
+  if (!slot || !box.isConnected) return;
+  box.style.fontSize = '';
+  box.classList.remove('fit-wrap');
+  slot.textContent = title;
+  // Full-height glyphs (Hangul, kana, CJK) need looser leading than Latin; themes can key off this.
+  box.dataset.script = /[\u1100-\u11ff\u2e80-\u9fff\uac00-\ud7af\uf900-\ufaff\uff00-\uffef]/.test(title) ? 'cjk' : 'latin';
+  const cs = getComputedStyle(box);
+  const maxFs = parseFloat(cs.fontSize);
+  const minFs = parseFloat(cs.getPropertyValue('--fit-min')) || 24;
+  const W = box.clientWidth * 0.97;
+  if (!title || !W || !maxFs) return;
+
+  const suffix = box.querySelector('[data-fit-suffix]')?.textContent || '';
+  const ls = parseFloat(cs.letterSpacing);
+  const probe = document.createElement('span');
+  probe.style.cssText = `position:absolute;left:-99999px;top:0;visibility:hidden;white-space:pre;` +
+    `font-family:${cs.fontFamily};font-weight:${cs.fontWeight};font-style:${cs.fontStyle};font-size:100px;` +
+    `letter-spacing:${Number.isFinite(ls) ? (ls / maxFs) * 100 : 0}px`;
+  document.body.append(probe);
+  const width = (t) => { probe.textContent = t; return probe.getBoundingClientRect().width || 1; };
+
+  // Optional height budget: the box's CSS max-height bounds lines × line-height.
+  const maxH = parseFloat(cs.maxHeight);
+  const lh = (parseFloat(cs.lineHeight) || maxFs * 1.1) / maxFs;
+  const capFor = (lines) => (Number.isFinite(maxH) ? Math.min(maxFs, maxH / (lines * lh)) : maxFs);
+  const fs1 = Math.min(capFor(1), (W / width(title + suffix)) * 100);
+
+  // Candidate breaks: at spaces when the title has any, else between characters (CJK) honoring kinsoku.
+  const chars = [...title];
+  const breaks = [];
+  if (/\s/.test(title)) {
+    chars.forEach((c, i) => { if (/\s/.test(c) && i > 0 && i < chars.length - 1) breaks.push([i, i + 1]); });
+  } else {
+    for (let i = 1; i < chars.length; i++) {
+      if (!NO_LINE_START.test(chars[i]) && !NO_LINE_END.test(chars[i - 1])) breaks.push([i, i]);
+    }
+  }
+  let best = null, balanced = null;
+  for (const [a, b] of breaks) {
+    const l1 = chars.slice(0, a).join('').trimEnd();
+    const l2 = chars.slice(b).join('').trimStart();
+    const m = Math.max(width(l1), width(l2 + suffix));
+    // Natural break points (before "(", " - ", after "。" / ":" etc.) win unless clearly less balanced.
+    const natural = /^[-–—(（\[［「『]/.test(l2) || /[。、，,:：!！?？]$/.test(l1);
+    const cand = { m, score: natural ? m * 0.8 : m, text: `${l1}\n${l2}` };
+    if (!best || cand.score < best.score) best = cand;
+    if (!balanced || cand.m < balanced.m) balanced = cand;
+  }
+  probe.remove();
+  // A natural break that would push the size under the floor yields to the most balanced one.
+  if (best && (W / best.m) * 100 < minFs) best = balanced;
+  const fs2 = best ? Math.min(capFor(2), (W / best.m) * 100) : 0;
+
+  // Prefer one line unless two lines make the title clearly bigger.
+  const oneLine = fs1 >= capFor(1) * 0.75 || fs1 >= fs2 * 0.9;
+  const fs = oneLine ? fs1 : fs2;
+  if (fs < minFs) {
+    box.classList.add('fit-wrap');
+    box.style.fontSize = `${minFs}px`;
+    return;
+  }
+  if (!oneLine) slot.textContent = best.text;
+  box.style.fontSize = `${Math.floor(fs * 10) / 10}px`;
 }
 
 // "[█████░░░░░]" sized to the element's width in monospace characters.
@@ -241,7 +308,13 @@ function viewNow() {
   autoHide = true; poke();
   $view.innerHTML = '<div class="center-msg">불러오는 중…</div>';
 
-  let state = null, at = 0, shownKey = null, mode = null, artIdx = 0, timer = 0, alive = true;
+  let state = null, at = 0, shownKey = null, mode = null, artIdx = 0, timer = 0, alive = true, title = '';
+  const refit = () => { if (mode === 'playing') (els.fits || []).forEach((b) => fitTitle(b, title)); };
+  let refitTimer = 0;
+  const onResize = () => { clearTimeout(refitTimer); refitTimer = setTimeout(refit, 120); };
+  addEventListener('resize', onResize);
+  document.fonts?.addEventListener?.('loadingdone', refit);
+  document.fonts?.ready?.then(refit);
 
   const els = {};
   const slots = {};
@@ -255,6 +328,7 @@ function viewNow() {
       np: $view.querySelector('.np'), inner: $view.querySelector('.np-inner'),
       imgs: $view.querySelectorAll('.art-stack img'), swaps: $view.querySelectorAll('[data-swap]'),
       deviceShow: $view.querySelectorAll('[data-show="device"]'), clock: $view.querySelector('.mini-clock'),
+      fits: $view.querySelectorAll('[data-fit]'),
     });
   };
 
@@ -338,13 +412,14 @@ function viewNow() {
       if (!first && els.swaps.length) { els.swaps.forEach((el) => el.classList.add('out')); await sleep(350); }
       if (mode !== 'playing') return;
       setSlot('title', it.name);
+      title = it.name;
+      refit();
       setSlot('artist', artistsOf(it));
       setSlot('album', it.album?.name || it.show?.publisher || '');
       const no = it.track_number ? `Track ${String(it.track_number).padStart(2, '0')}` : '';
       const year = (it.album?.release_date || it.release_date || '').slice(0, 4);
       setSlot('kicker', [no, year].filter(Boolean).join(' · '));
       document.title = `${it.name} · ${artistsOf(it)}`;
-      els.np.style.setProperty('--tl', titleWeight(it.name));
       els.swaps.forEach((el) => el.classList.remove('out'));
     }
     paintProgress();
@@ -383,6 +458,8 @@ function viewNow() {
   onLeave(() => {
     alive = false; clearTimeout(timer); clearInterval(tick); clearInterval(drift);
     document.removeEventListener('visibilitychange', onVis);
+    removeEventListener('resize', onResize);
+    document.fonts?.removeEventListener?.('loadingdone', refit);
     document.title = 'Now Playing';
   });
   poll();

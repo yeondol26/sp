@@ -305,3 +305,10 @@ main { position: relative; z-index: 1; }
 .tthumb .tt-l1 { left: 52%; top: 32%; width: 36%; height: 9%; border-radius: 2px; background: currentColor; }
 .tthumb .tt-l2 { left: 52%; top: 46%; width: 24%; height: 6%; border-radius: 2px; background: currentColor; opacity: .55; }
 .tthumb .tt-bar { left: 52%; top: 62%; width: 36%; height: 3%; background: var(--ta); }
+
+/* ================= fitted titles ([data-fit]) ================= */
+[data-fit] { white-space: pre; }
+[data-fit].fit-wrap {
+  white-space: normal;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
