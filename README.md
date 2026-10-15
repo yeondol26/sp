@@ -11,6 +11,20 @@ Spotify Web API로 **읽기 전용** 정보를 보여주는 정적 웹앱입니�
   - 화면 켜두기(Wake Lock), 전체 화면(iPad만), OLED 번인 방지용 미세 이동
 - **Top**: 내 Top 곡 / 아티스트 (최근 4주 · 6개월 · 약 1년). 1위는 크게, 2–10위는 큰 순위 숫자, 11위 이하는 목록
 
+## 테마
+상단 🎨 버튼으로 고르며, 고른 테마는 이 브라우저에 기억됩니다.
+
+| 테마 | 설명 |
+|---|---|
+| Aurora (기본) | 흐린 앨범 아트 배경, 굵은 제목 |
+| Vinyl | 턴테이블 위에서 LP가 돌고 라벨에 앨범 아트. 일시정지하면 회전이 멈추고 톤암이 들림 |
+| Terminal | CRT 모니터 느낌. 고정폭 글꼴, 스캔라인, `[████░░░]` 진행 바 |
+
+### 테마 추가하기
+1. `js/themes/<id>.js` 작성 — `id`, `name`, `desc`, `thumb`, `markup()` 등 (계약은 `js/themes/aurora.js` 주석 참고)
+2. 필요하면 `themes/<id>.css` 작성 — 모든 규칙을 `html[data-theme="<id>"]` 또는 테마 전용 클래스로 범위 지정
+3. `js/themes/index.js`의 `THEMES` 배열에 추가
+
 ## 설정
 1. https://developer.spotify.com/dashboard 에서 앱 생성 (API: **Web API**)
 2. 이 폴더를 **HTTPS** 호스팅에 올림 (예: GitHub Pages → `https://<user>.github.io/sp/`)
@@ -33,5 +47,7 @@ index.html   앱 셸
 style.css    반응형 스타일
 js/auth.js   PKCE 로그인 / 토큰 갱신
 js/api.js    GET 전용 API 래퍼 (401 갱신, 429 Retry-After 재시도)
-js/app.js    Now Playing / Top 화면, 배경·색 추출, 라우터
+js/app.js    Now Playing / Top 화면, 배경·색 추출, 테마 선택, 라우터
+js/themes/   테마별 화면 구조 (index.js = 목록)
+themes/      테마별 스타일
 ```

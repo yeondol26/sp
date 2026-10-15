@@ -1,0 +1,135 @@
+/* Vinyl theme. Everything is scoped to html[data-theme="vinyl"]. */
+html[data-theme="vinyl"] {
+  --vy-ink: #f6efe4;
+  --vy-dim: #cdbfae;
+  --vy-faint: #95877a;
+  --vy-serif: "Fraunces", "Noto Serif KR", "Apple SD Gothic Neo", serif;
+}
+
+/* warm room light, tinted by the artwork's accent color */
+html[data-theme="vinyl"] #bg .layer,
+html[data-theme="vinyl"] #bg .veil { display: none; }
+html[data-theme="vinyl"] #bg {
+  background:
+    radial-gradient(60% 55% at 30% 50%, rgb(var(--accent) / .16), transparent 70%),
+    radial-gradient(120% 100% at 30% 45%, #2e2119 0%, #17110c 55%, #0b0806 100%);
+  transition: background 1.5s;
+}
+
+/* ---------- layout ---------- */
+html[data-theme="vinyl"] .vy-inner {
+  width: 100%; max-width: 1400px;
+  display: grid; grid-template-columns: 1fr; justify-items: center; align-items: center;
+  gap: clamp(28px, 5vh, 56px);
+  --rs: min(80vw, 44vh, 560px);           /* record size */
+  transition: transform 3s var(--ease);
+}
+@media (orientation: landscape) and (min-width: 700px) {
+  html[data-theme="vinyl"] .vy-inner {
+    grid-template-columns: auto minmax(0, 1fr); justify-items: start;
+    gap: clamp(40px, 6vw, 96px);
+    --rs: min(72vh, 42vw, 660px);
+  }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  html[data-theme="vinyl"] .vy-inner { --rs: min(64vh, 38vw); gap: 32px; }
+}
+
+/* ---------- turntable ---------- */
+.vy-deck { position: relative; width: calc(var(--rs) * 1.16); height: var(--rs); }
+.vy-record {
+  position: absolute; left: 0; top: 0; width: var(--rs); height: var(--rs); border-radius: 50%;
+  background: #0d0d0d;
+  box-shadow: 0 34px 70px -18px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.04), inset 0 0 0 calc(var(--rs) * .012) #080808;
+}
+.vy-grooves {
+  position: absolute; inset: 2.5%; border-radius: 50%;
+  background: repeating-radial-gradient(circle at 50% 50%, #121212 0 1.5px, #1d1d1d 1.5px 2.5px, #111 2.5px 3.5px);
+}
+/* static reflection: stays put while the record turns underneath */
+.vy-sheen {
+  position: absolute; inset: 0; border-radius: 50%; z-index: 2; pointer-events: none;
+  background: conic-gradient(from 25deg, transparent 0deg, rgba(255,255,255,.10) 28deg, transparent 62deg,
+    transparent 205deg, rgba(255,255,255,.07) 235deg, transparent 268deg);
+}
+.vy-label {
+  position: absolute; left: 32%; top: 32%; width: 36%; height: 36%; border-radius: 50%; overflow: hidden; z-index: 1;
+  background: #2a1f18;
+  animation: vy-spin 1.8s linear infinite;   /* 33⅓ rpm */
+}
+.vy-label img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
+  opacity: 0; transition: opacity .9s var(--ease);
+}
+.vy-label img.on { opacity: 1; }
+.vy-hole {
+  position: absolute; left: 50%; top: 50%; width: 2.6%; height: 2.6%; margin: -1.3% 0 0 -1.3%; z-index: 3;
+  border-radius: 50%; background: #c9c2b6; box-shadow: 0 0 0 calc(var(--rs) * .006) #0b0806;
+}
+@keyframes vy-spin { to { transform: rotate(360deg); } }
+.np.paused .vy-label { animation-play-state: paused; }
+
+/* tonearm: pivots top-right of the platter; creeps inward with progress; lifts off when paused */
+.vy-pivot {
+  position: absolute; z-index: 4; left: calc(var(--rs) * 1.02); top: calc(var(--rs) * .04);
+  width: calc(var(--rs) * .1); height: calc(var(--rs) * .1); margin: calc(var(--rs) * -.05) 0 0 calc(var(--rs) * -.05);
+  border-radius: 50%; background: radial-gradient(circle at 40% 35%, #efe9df, #8f8a82 70%, #5e5a54);
+  box-shadow: 0 6px 16px rgba(0,0,0,.6);
+}
+.vy-arm {
+  position: absolute; z-index: 3; left: calc(var(--rs) * 1.02); top: calc(var(--rs) * .04);
+  width: 0; height: calc(var(--rs) * .62);
+  transform-origin: 0 0;
+  transform: rotate(calc(20deg + var(--p, 0) * 13deg));
+  transition: transform 1.4s var(--ease);
+}
+.np.paused .vy-arm { transform: rotate(3deg); }
+.vy-rod {
+  position: absolute; left: calc(var(--rs) * -.009); top: 0; width: calc(var(--rs) * .018); height: 100%;
+  border-radius: 99px; background: linear-gradient(to right, #a7a197, #f1ece4, #8f8a82);
+  box-shadow: 6px 8px 12px rgba(0,0,0,.45);
+}
+.vy-head {
+  position: absolute; left: calc(var(--rs) * -.03); bottom: calc(var(--rs) * -.07);
+  width: calc(var(--rs) * .06); height: calc(var(--rs) * .09); border-radius: 4px;
+  background: linear-gradient(#3a3631, #1f1c19); box-shadow: 6px 8px 12px rgba(0,0,0,.5);
+}
+
+/* ---------- text ---------- */
+.vy-meta { width: 100%; max-width: min(84vw, 620px); text-align: center; min-width: 0; }
+@media (orientation: landscape) and (min-width: 700px) { .vy-meta { text-align: left; } }
+.vy-kicker {
+  font-size: 12px; letter-spacing: .3em; text-transform: uppercase; color: rgb(var(--accent));
+  min-height: 1em; font-family: -apple-system, system-ui, sans-serif; font-weight: 600;
+}
+.vy-title {
+  margin-top: 18px; font-family: var(--vy-serif); font-style: italic; font-weight: 400;
+  font-size: clamp(30px, 5vw, 68px); line-height: 1.04; color: var(--vy-ink); letter-spacing: -.01em;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-wrap: balance;
+}
+.vy-artist { margin-top: 14px; font-family: var(--vy-serif); font-size: clamp(18px, 2.3vw, 26px); color: var(--vy-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vy-album { margin-top: 4px; font-size: clamp(13px, 1.4vw, 16px); color: var(--vy-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vy-progress { margin-top: clamp(24px, 4vh, 44px); }
+.vy-line { position: relative; height: 1px; background: rgba(246,239,228,.25); }
+.vy-line i { position: absolute; left: 0; top: 0; height: 1px; width: calc(var(--p, 0) * 100%); background: rgb(var(--accent)); transition: width 1s linear; }
+.vy-line b {
+  position: absolute; top: -4px; left: calc(var(--p, 0) * 100%); width: 9px; height: 9px; margin-left: -4.5px;
+  border-radius: 50%; background: rgb(var(--accent)); transition: left 1s linear;
+}
+.vy-times { display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px; color: var(--vy-faint); }
+.vy-status { margin-top: 18px; font-family: var(--vy-serif); font-style: italic; font-size: 15px; color: var(--vy-faint); }
+.vy-status [hidden] { display: none; }
+
+/* ---------- shared pieces ---------- */
+html[data-theme="vinyl"] .mini-clock { font-family: var(--vy-serif); font-style: italic; font-size: 16px; color: var(--vy-faint); }
+html[data-theme="vinyl"] .big-clock { font-family: var(--vy-serif); font-weight: 300; font-style: italic; color: var(--vy-ink); }
+html[data-theme="vinyl"] .big-date { font-family: var(--vy-serif); color: var(--vy-dim); }
+html[data-theme="vinyl"] .last { background: rgba(246,239,228,.06); }
+html[data-theme="vinyl"] .last img { border-radius: 50%; }
+
+/* Top page */
+html[data-theme="vinyl"] .top-head h1,
+html[data-theme="vinyl"] .hero1 .name { font-family: var(--vy-serif); font-weight: 600; letter-spacing: -.02em; }
+html[data-theme="vinyl"] .top-head h1 span { font-style: italic; font-weight: 400; }
+html[data-theme="vinyl"] .rcard .num { font-family: var(--vy-serif); font-style: italic; font-weight: 400; -webkit-text-stroke: 1.5px rgba(246,239,228,.55); }
+html[data-theme="vinyl"] .hero1 .rank { font-family: -apple-system, system-ui, sans-serif; }

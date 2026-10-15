@@ -1,5 +1,6 @@
 import * as auth from './auth.js';
 import { get, getList, ApiError } from './api.js';
+import { THEMES, DEFAULT_THEME, themeById } from './themes/index.js';
 
 const $view = document.getElementById('view');
 const $chrome = document.getElementById('chrome');
@@ -23,8 +24,75 @@ const ICONS = {
   sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
   expand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>',
   out: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>',
-  device: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></svg>',
+  palette: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.7-.8 1.7-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.7 1.7-1.7H16a5 5 0 0 0 5-5c0-4-4-7.2-9-7.2z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="14.5" cy="7" r="1"/></svg>',
+  close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
 };
+
+// ---------- themes ----------
+const store = {
+  get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
+};
+let theme = themeById(store.get('spv.theme') || DEFAULT_THEME);
+
+const loadedAssets = new Map();
+function loadStylesheet(href) {
+  if (!href) return Promise.resolve();
+  if (!loadedAssets.has(href)) {
+    loadedAssets.set(href, new Promise((resolve) => {
+      const l = document.createElement('link');
+      l.rel = 'stylesheet'; l.href = href;
+      l.onload = l.onerror = () => resolve();
+      document.head.append(l);
+    }));
+  }
+  return loadedAssets.get(href);
+}
+
+async function applyTheme(t) {
+  theme = t;
+  store.set('spv.theme', t.id);
+  loadStylesheet(t.fonts); // fonts may swap in late; don't block on them
+  await loadStylesheet(t.css);
+  document.documentElement.dataset.theme = t.id;
+}
+
+const $sheet = document.getElementById('theme-sheet');
+function thumbHtml(t) {
+  const th = t.thumb || {};
+  return `<span class="tthumb tthumb-${esc(th.art || 'square')}" style="background:${esc(th.bg || '#222')};color:${esc(th.fg || '#fff')};--ta:${esc(th.accent || '#fff')}">
+    <i class="tt-art"></i><i class="tt-l1"></i><i class="tt-l2"></i><i class="tt-bar"></i></span>`;
+}
+function openThemeSheet() {
+  $sheet.innerHTML = `
+    <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+      <div class="sheet-head">
+        <h2 id="sheet-title">테마</h2>
+        <button class="icon" data-close aria-label="닫기">${ICONS.close}</button>
+      </div>
+      <div class="theme-grid">${THEMES.map((t) => `
+        <button class="theme-card${t.id === theme.id ? ' on' : ''}" data-theme-id="${esc(t.id)}" aria-pressed="${t.id === theme.id}">
+          ${thumbHtml(t)}
+          <span class="tc-name">${esc(t.name)}</span>
+          <span class="tc-desc">${esc(t.desc || '')}</span>
+        </button>`).join('')}</div>
+    </div>`;
+  $sheet.hidden = false;
+  requestAnimationFrame(() => $sheet.classList.add('open'));
+}
+function closeThemeSheet() {
+  $sheet.classList.remove('open');
+  setTimeout(() => { $sheet.hidden = true; $sheet.innerHTML = ''; }, 250);
+}
+$sheet.addEventListener('click', async (ev) => {
+  if (ev.target === $sheet || ev.target.closest('[data-close]')) return closeThemeSheet();
+  const card = ev.target.closest('[data-theme-id]');
+  if (!card) return;
+  await applyTheme(themeById(card.dataset.themeId));
+  closeThemeSheet();
+  route();
+});
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$sheet.hidden) closeThemeSheet(); });
 
 // ---------- ambient background + accent color ----------
 let bgUrl = '', bgIdx = 0;
@@ -94,7 +162,9 @@ function poke() {
 const $wake = document.getElementById('btn-wake');
 const $fs = document.getElementById('btn-fs');
 const $out = document.getElementById('btn-out');
-$wake.innerHTML = ICONS.sun; $fs.innerHTML = ICONS.expand; $out.innerHTML = ICONS.out;
+const $themeBtn = document.getElementById('btn-theme');
+$wake.innerHTML = ICONS.sun; $fs.innerHTML = ICONS.expand; $out.innerHTML = ICONS.out; $themeBtn.innerHTML = ICONS.palette;
+$themeBtn.onclick = openThemeSheet;
 
 let wakeLock = null;
 let wantWake = (() => { try { return localStorage.getItem('spv.wake') === '1'; } catch { return false; } })();
@@ -127,6 +197,23 @@ if (fsEnabled) {
 $out.onclick = () => { if (confirm('로그아웃할까요?')) { auth.logout(); location.hash = '#/'; route(); } };
 
 // ---------- NOW PLAYING ----------
+// "[█████░░░░░]" sized to the element's width in monospace characters.
+function textBar(el, frac) {
+  const fs = getComputedStyle(el).fontSize;
+  if (el._fs !== fs) {
+    const probe = document.createElement('span');
+    probe.textContent = '0'.repeat(20);
+    probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre';
+    el.append(probe);
+    el._cw = probe.getBoundingClientRect().width / 20 || 10;
+    probe.remove();
+    el._fs = fs;
+  }
+  const n = Math.max(8, Math.floor(el.clientWidth / el._cw) - 2);
+  const k = Math.round(Math.min(1, Math.max(0, frac)) * n);
+  return `[${'█'.repeat(k)}${'░'.repeat(n - k)}]`;
+}
+
 let cleanup = [];
 const onLeave = (f) => cleanup.push(f);
 
@@ -149,33 +236,17 @@ function viewNow() {
   let state = null, at = 0, shownKey = null, mode = null, artIdx = 0, timer = 0, alive = true;
 
   const els = {};
+  const slots = {};
+  const setSlot = (name, text) => (slots[name] || []).forEach((el) => { el.textContent = text; });
   const buildPlaying = () => {
     mode = 'playing'; shownKey = null;
-    $view.innerHTML = `
-      <section class="np">
-        <div class="np-inner">
-          <div class="art-wrap"><div class="art-ph"></div><img alt=""><img alt=""></div>
-          <div class="meta">
-            <div class="status"><span class="eq"><i></i><i></i><i></i></span><span class="st"></span></div>
-            <div class="text-swap">
-              <div class="title"></div>
-              <div class="artist"></div>
-              <div class="album"></div>
-            </div>
-            <div class="progress">
-              <div class="track-line"><i></i></div>
-              <div class="times tnum"><span class="cur">0:00</span><span class="dur">0:00</span></div>
-            </div>
-            <div class="device"></div>
-          </div>
-        </div>
-      </section>
-      <div class="mini-clock tnum"></div>`;
-    const q = (s) => $view.querySelector(s);
+    $view.innerHTML = `${theme.markup()}<div class="mini-clock tnum"></div>`;
+    for (const k in slots) delete slots[k];
+    $view.querySelectorAll('[data-slot]').forEach((el) => (slots[el.dataset.slot] ||= []).push(el));
     Object.assign(els, {
-      np: q('.np'), inner: q('.np-inner'), imgs: $view.querySelectorAll('.art-wrap img'),
-      st: q('.st'), swap: q('.text-swap'), title: q('.title'), artist: q('.artist'), album: q('.album'),
-      bar: q('.track-line > i'), cur: q('.cur'), dur: q('.dur'), device: q('.device'), clock: q('.mini-clock'),
+      np: $view.querySelector('.np'), inner: $view.querySelector('.np-inner'),
+      imgs: $view.querySelectorAll('.art-stack img'), swap: $view.querySelector('[data-swap]'),
+      deviceShow: $view.querySelectorAll('[data-show="device"]'), clock: $view.querySelector('.mini-clock'),
     });
   };
 
@@ -223,9 +294,12 @@ function viewNow() {
   const paintProgress = () => {
     if (mode !== 'playing' || !state?.item) return;
     const dur = state.item.duration_ms || 0, p = progressNow();
-    els.bar.style.width = dur ? `${(p / dur) * 100}%` : '0';
-    els.cur.textContent = fmt(p);
-    els.dur.textContent = fmt(dur);
+    const frac = dur ? p / dur : 0;
+    els.np.style.setProperty('--p', frac.toFixed(4));
+    setSlot('cur', fmt(p));
+    setSlot('dur', fmt(dur));
+    setSlot('pct', `${Math.round(frac * 100)}%`);
+    (slots.textbar || []).forEach((el) => { el.textContent = textBar(el, frac); });
   };
 
   const swapArt = (url) => {
@@ -241,9 +315,11 @@ function viewNow() {
     if (mode !== 'playing') buildPlaying();
 
     els.np.classList.toggle('paused', !state.is_playing);
-    els.st.textContent = state.is_playing ? 'Now Playing' : 'Paused';
-    const dev = state.device?.name;
-    els.device.innerHTML = dev ? `${ICONS.device}<span>${esc(dev)}</span>` : '';
+    const labels = theme.labels || {};
+    setSlot('status', state.is_playing ? (labels.playing || 'Now Playing') : (labels.paused || 'Paused'));
+    const dev = state.device?.name || '';
+    setSlot('device', dev);
+    els.deviceShow.forEach((el) => { el.hidden = !dev; });
 
     const key = it.uri || it.id || it.name;
     if (key !== shownKey) {
@@ -251,12 +327,16 @@ function viewNow() {
       shownKey = key;
       swapArt(artOf(it, 600));
       setBackground(artOf(it, 300));
-      if (!first) { els.swap.classList.add('out'); await sleep(350); }
-      els.title.textContent = it.name;
-      els.artist.textContent = artistsOf(it);
-      els.album.textContent = it.album?.name || it.show?.publisher || '';
+      if (!first && els.swap) { els.swap.classList.add('out'); await sleep(350); }
+      if (mode !== 'playing') return;
+      setSlot('title', it.name);
+      setSlot('artist', artistsOf(it));
+      setSlot('album', it.album?.name || it.show?.publisher || '');
+      const no = it.track_number ? `Track ${String(it.track_number).padStart(2, '0')}` : '';
+      const year = (it.album?.release_date || it.release_date || '').slice(0, 4);
+      setSlot('kicker', [no, year].filter(Boolean).join(' · '));
       document.title = `${it.name} · ${artistsOf(it)}`;
-      els.swap.classList.remove('out');
+      els.swap?.classList.remove('out');
     }
     paintProgress();
   };
@@ -423,6 +503,7 @@ addEventListener('hashchange', route);
 addEventListener('scroll', () => document.body.classList.toggle('scrolled', scrollY > 8), { passive: true });
 
 (async () => {
+  await applyTheme(theme);
   try { await auth.handleCallback(); }
   catch (e) { $chrome.hidden = true; viewSetup(e.message); return; }
   applyWake();
