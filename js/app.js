@@ -407,6 +407,7 @@ function viewNow() {
     lastFrac = frac;
     setSlot('cur', fmt(p));
     setSlot('dur', fmt(dur));
+    setSlot('left', fmt(dur - p));
     setSlot('pct', `${Math.round(frac * 100)}%`);
     (slots.textbar || []).forEach((el) => { el.textContent = textBar(el, frac); });
   };

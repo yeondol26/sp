@@ -7,7 +7,7 @@
 //   fonts                 Google Fonts css2 URL
 //   labels                { playing, paused } status text
 //   markup()              Now Playing HTML. The app fills these hooks:
-//     [data-slot=title|artist|album|albumyear|status|device|kicker|trackno|year|cur|dur|pct|textbar]  text
+//     [data-slot=title|artist|album|albumyear|status|device|kicker|trackno|year|cur|dur|left|pct|textbar]  text
 //     <html> attrs: data-theme, data-view (now|top), data-playback (playing|paused|idle)
 //     CSS vars on :root: --accent (vivid), --pal1/--pal2 (two dominant cover colors), all 'r g b'
 //     [data-show=device]   hidden when no device name

@@ -28,7 +28,8 @@ html[data-theme="subway"] #bg::before {
 html[data-theme="subway"] #bg .veil {
   background:
     repeating-linear-gradient(to bottom, rgba(0,0,0,.07) 0 1px, transparent 1px 3px),
-    linear-gradient(to bottom, rgba(0,0,0,.62) 0, rgba(0,0,0,.4) 120px, rgba(0,0,0,.12) 220px, transparent 300px),
+    linear-gradient(to bottom, rgba(0,0,0,.6) 0, rgba(0,0,0,.42) 220px, rgba(0,0,0,.15) 420px, transparent 520px),
+    linear-gradient(to right, rgba(0,0,0,.32) 0, transparent 55%),
     radial-gradient(120% 95% at 50% 45%, transparent 55%, rgba(0,0,0,.5) 100%);
 }
 /* film grain, jittered a few times a second */
@@ -48,44 +49,43 @@ html[data-theme="subway"][data-view="top"] #bg::before { filter: blur(2px) satur
   html[data-theme="subway"] #bg::before, html[data-theme="subway"] #bg .grain { animation: none; }
 }
 
-/* ---------- top line (mockup layout) ---------- */
+/* ---------- stacked lines, top-left ---------- */
 html[data-theme="subway"] .np.sb { display: block; padding: 0; }
 html[data-theme="subway"] .sb-top {
   position: fixed; z-index: 2; display: block; width: auto; max-width: none;
   justify-self: stretch; justify-items: normal;   /* undo the base .np-inner centering/shrinking */
-  top: calc(var(--sa-t) + 76px); left: calc(56px + var(--sa-l)); right: calc(56px + var(--sa-r));
-  /* strong but soft shadow so white text reads on any part of the scene */
+  top: calc(var(--sa-t) + 76px); left: calc(28px + var(--sa-l)); right: calc(28px + var(--sa-r));
   text-shadow: 0 1px 2px rgba(0,0,0,.85), 0 1px 10px rgba(0,0,0,.55);
   transition: transform 3s var(--ease);
 }
-.sb-row { display: flex; justify-content: space-between; align-items: baseline; gap: 24px; }
-.sb-line {
-  min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  font-family: var(--sb-font); font-weight: 800; font-size: clamp(20px, 2.2vw, 28px); color: #fff;
+.sb-l {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-family: var(--sb-sans); font-size: 15px; line-height: 1.75; letter-spacing: .02em; color: #fff;
 }
-.sb-artist { font-family: var(--sb-sans); font-weight: 400; font-size: .65em; color: rgba(255,255,255,.82); }
-.sb-time { flex: none; font-family: var(--sb-sans); font-size: 15px; color: rgba(255,255,255,.82); }
-.sb-bar { margin-top: 10px; height: 2px; background: rgba(255,255,255,.28); box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+.sb-l[hidden], .sb-status:empty { display: none; }
+.sb-title { font-family: var(--sb-font); font-weight: 800; font-size: 24px; line-height: 1.35; letter-spacing: .01em; white-space: normal; }
+.sb-artist { font-size: 16px; color: rgba(255,255,255,.9); }
+.sb-dim { color: rgba(255,255,255,.8); }
+.sb-status { margin-top: 2px; color: #fff; }
+.sb-bar { margin: 12px 0 8px; height: 2px; background: rgba(255,255,255,.28); box-shadow: 0 1px 4px rgba(0,0,0,.4); }
 .sb-bar i { display: block; height: 100%; width: calc(var(--p, 0) * 100%); background: #fff; transition: width var(--p-dur, 1s) linear; }
 .np.paused .sb-bar i { background: rgba(255,255,255,.55); }
-.sb-times { display: none; justify-content: space-between; margin-top: 6px; font-family: var(--sb-sans); font-size: 12px; color: rgba(255,255,255,.82); }
-/* phone portrait: narrower margins, times under the bar */
-@media (orientation: portrait) and (max-width: 600px) {
-  html[data-theme="subway"] .sb-top { left: calc(28px + var(--sa-l)); right: calc(28px + var(--sa-r)); }
-  .sb-line { font-size: 22px; }
-  .sb-artist { font-size: 14px; }
-  .sb-time { display: none; }
-  .sb-times { display: flex; }
-}
-/* iPad and landscape: the block takes half of the width it used to, anchored left */
-@media (min-width: 601px), (orientation: landscape) {
+
+/* iPad: a little larger, half of the old width, anchored left */
+@media (min-width: 700px) and (min-height: 501px) {
   html[data-theme="subway"] .sb-top {
-    right: auto;
+    left: calc(56px + var(--sa-l)); right: auto;
     width: calc((100vw - 112px - var(--sa-l) - var(--sa-r)) / 2);
   }
+  .sb-l { font-size: 16px; }
+  .sb-title { font-size: 28px; }
+  .sb-artist { font-size: 18px; }
 }
+/* iPhone landscape: full width again, a bit tighter */
 @media (orientation: landscape) and (max-height: 500px) {
-  html[data-theme="subway"] .sb-top { top: calc(var(--sa-t) + 64px); }
+  html[data-theme="subway"] .sb-top { top: calc(var(--sa-t) + 62px); left: calc(40px + var(--sa-l)); right: calc(40px + var(--sa-r)); }
+  .sb-l { line-height: 1.6; font-size: 14px; }
+  .sb-title { font-size: 22px; }
 }
 
 /* ---------- shared pieces ---------- */
