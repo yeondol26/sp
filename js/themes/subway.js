@@ -1,6 +1,6 @@
 // Subway — one still scene fills the screen (a night train, filtered like an old TV broadcast).
 // No album art: a stack of short lines at the top-left, set in the kept Top-title style
-// (Shippori Mincho B1 800 — see DESIGN_NOTES.md): title and labels white, values light grey.
+// (Shippori Mincho B1 800 — see DESIGN_NOTES.md): title and values white, labels light grey, no text shadow.
 // The scene is drawn on #bg by themes/subway.css, so the idle and Top screens share it.
 export default {
   id: 'subway',

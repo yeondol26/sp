@@ -57,20 +57,20 @@ html[data-theme="subway"] .sb-top {
   top: calc(var(--sa-t) + 76px); left: calc(28px + var(--sa-l)); right: auto;
   width: max-content;                              /* as wide as the longest line, so the bar matches the text */
   max-width: calc(100vw - 56px - var(--sa-l) - var(--sa-r));
-  text-shadow: 0 1px 2px rgba(0,0,0,.85), 0 1px 10px rgba(0,0,0,.55);
+  text-shadow: none; opacity: .85;                 /* no shadow; sits softly in the scene */
   transition: transform 3s var(--ease);
 }
 .sb-l {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   font-family: var(--sb-font); font-weight: 800; letter-spacing: 0;
-  font-size: 16px; line-height: 2.15; color: #fff;
+  font-size: 16px; line-height: 1.2; color: #fff;
 }
-.sb-k { color: #fff; }                            /* labels: From / delta time / until END / Synced w/ */
-.sb-v { color: #b4b4b4; }                         /* values (artist, album, times, device): light grey */
+.sb-k { color: #b4b4b4; }                         /* labels: From / delta time / until END / Synced w/ — light grey */
+.sb-v { color: #fff; }                            /* values (artist, album, times, device): white */
 .sb-l[hidden], .sb-status:empty { display: none; }
-.sb-title { font-size: 26px; line-height: 1.5; white-space: normal; }
+.sb-title { font-size: 26px; line-height: 1.15; white-space: normal; }
 .sb-status { color: rgba(255,255,255,.5); }
-.sb-bar { margin: 14px 0 10px; height: 2px; background: rgba(255,255,255,.28); box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+.sb-bar { margin: 8px 0 6px; height: 2px; background: rgba(255,255,255,.28); }
 .sb-bar i { display: block; height: 100%; width: calc(var(--p, 0) * 100%); background: #fff; transition: width var(--p-dur, 1s) linear; }
 .np.paused .sb-bar i { background: rgba(255,255,255,.55); }
 
@@ -86,9 +86,8 @@ html[data-theme="subway"] .sb-top {
 /* iPhone landscape: a bit tighter so the stack fits the short screen */
 @media (orientation: landscape) and (max-height: 500px) {
   html[data-theme="subway"] .sb-top { top: calc(var(--sa-t) + 60px); left: calc(40px + var(--sa-l)); max-width: calc(100vw - 80px - var(--sa-l) - var(--sa-r)); }
-  .sb-l { font-size: 14px; line-height: 1.85; }
-  .sb-title { font-size: 22px; line-height: 1.4; }
-  .sb-bar { margin: 8px 0 6px; }
+  .sb-l { font-size: 14px; }
+  .sb-title { font-size: 22px; }
 }
 
 /* ---------- shared pieces ---------- */
