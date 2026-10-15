@@ -329,7 +329,7 @@ function viewNow() {
   autoHide = true; poke();
   $view.innerHTML = '<div class="center-msg">불러오는 중…</div>';
 
-  let state = null, at = 0, shownKey = null, mode = null, artIdx = 0, timer = 0, alive = true, title = '', lastFrac = 0;
+  let state = null, at = 0, shownKey = null, mode = null, artIdx = 0, timer = 0, alive = true, title = '', lastFrac = 0, lastItemAt = 0;
   const refit = () => { if (mode === 'playing') (els.fits || []).forEach((b) => fitTitle(b, title)); };
   let refitTimer = 0;
   const onResize = () => { clearTimeout(refitTimer); refitTimer = setTimeout(refit, 120); };
@@ -428,7 +428,14 @@ function viewNow() {
 
   const render = async () => {
     const it = state?.item;
-    if (!it) { if (mode !== 'idle') await buildIdle(); return; }
+    if (!it) {
+      // Spotify often reports "nothing playing" for a moment between tracks; keep the current
+      // screen for a few seconds so the scene doesn't flash to the idle view and back.
+      if (mode === 'playing' && Date.now() - lastItemAt < 12000) return;
+      if (mode !== 'idle') await buildIdle();
+      return;
+    }
+    lastItemAt = Date.now();
     if (mode !== 'playing') buildPlaying();
 
     els.np.classList.toggle('paused', !state.is_playing);

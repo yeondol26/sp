@@ -13,16 +13,22 @@ html[data-theme="subway"] #bg::before {
   background: url("subway/scene.png") 50% 50% / cover no-repeat;
   /* the source is 500×375: soften the upscale, cool it down, lift the blacks a touch */
   filter: blur(.6px) saturate(.88) contrast(1.06) brightness(.92) sepia(.08) hue-rotate(-8deg);
-  transform-origin: 46% 55%;
-  animation: sb-drift 120s ease-in-out infinite alternate;   /* slow Ken Burns = no burn-in */
+  transform-origin: 50% 50%;
+  /* slow, wide wander through several poses; first and last pose are the same, so the loop never jumps */
+  animation: sb-drift 300s ease-in-out infinite;
   transition: filter 1.2s ease;
 }
 @media (orientation: portrait) {
   html[data-theme="subway"] #bg::before { background-position: 44% 50%; }
 }
+/* #bg::before is 112% of the screen; at scale ≥ 1.06 a shift of up to 4% still keeps every edge covered */
 @keyframes sb-drift {
-  from { transform: scale(1.02) translate(0, 0); }
-  to   { transform: scale(1.09) translate(-1.6%, -1.2%); }
+  0%, 100% { transform: scale(1.08) translate(0, 0); }
+  18%      { transform: scale(1.12) translate(-3.5%, -1.5%); }
+  36%      { transform: scale(1.07) translate(-1.5%, 2.5%); }
+  54%      { transform: scale(1.14) translate(3%, 1%); }
+  72%      { transform: scale(1.09) translate(2%, -2.5%); }
+  86%      { transform: scale(1.11) translate(-2%, 0); }
 }
 /* vignette + darker floor for the subtitle + faint scanlines */
 html[data-theme="subway"] #bg .veil {
