@@ -131,12 +131,12 @@ html[data-theme="vinyl"] .vy-inner {
 .vy-dash { display: inline-block; width: 22px; height: 1px; margin: 0 8px; vertical-align: middle; background: currentColor; opacity: .7; }
 .vy-title {
   margin-top: 16px; font-family: var(--vy-serif); font-weight: 600; font-style: normal;
-  font-size: clamp(24px, 3.9vw, 52px); line-height: 1.06; letter-spacing: -.015em; color: var(--vy-ink);
+  font-size: clamp(30px, 4.9vw, 64px); line-height: 1.06; letter-spacing: -.015em; color: var(--vy-ink);
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-wrap: balance;
 }
 .vy-artist {
   margin-top: 10px; font-family: var(--vy-serif); font-style: italic; font-weight: 400;
-  font-size: clamp(15px, 1.8vw, 21px); color: var(--vy-dim);
+  font-size: clamp(18px, 2.25vw, 26px); color: var(--vy-dim);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .vy-rule { width: 44px; height: 1px; margin: 18px auto 12px; background: rgba(246,239,228,.3); }
