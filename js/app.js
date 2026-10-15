@@ -355,6 +355,7 @@ function viewNow() {
 
   const buildIdle = async () => {
     mode = 'idle'; shownKey = null;
+    document.documentElement.dataset.playback = 'idle';
     $view.innerHTML = `
       <section class="np"><div class="clock-screen fade-in">
         <div class="big-clock tnum"></div>
@@ -425,8 +426,9 @@ function viewNow() {
     if (mode !== 'playing') buildPlaying();
 
     els.np.classList.toggle('paused', !state.is_playing);
+    document.documentElement.dataset.playback = state.is_playing ? 'playing' : 'paused';
     const labels = theme.labels || {};
-    setSlot('status', state.is_playing ? (labels.playing || 'Now Playing') : (labels.paused || 'Paused'));
+    setSlot('status', state.is_playing ? (labels.playing ?? 'Now Playing') : (labels.paused ?? 'Paused'));
     const dev = state.device?.name || '';
     setSlot('device', dev);
     els.deviceShow.forEach((el) => { el.hidden = !dev; });
@@ -610,6 +612,7 @@ function route() {
   if (!loggedIn) return viewSetup();
 
   $chrome.querySelectorAll('[data-route]').forEach((a) => a.classList.toggle('on', a.dataset.route === path));
+  document.documentElement.dataset.view = path === 'top' ? 'top' : 'now';
   window.scrollTo(0, 0);
   if (path === 'top') return viewTop(new URLSearchParams(qs));
   if (path !== '') { location.replace('#/'); return; }
