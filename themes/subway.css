@@ -49,43 +49,45 @@ html[data-theme="subway"][data-view="top"] #bg::before { filter: blur(2px) satur
   html[data-theme="subway"] #bg::before, html[data-theme="subway"] #bg .grain { animation: none; }
 }
 
-/* ---------- stacked lines, top-left ---------- */
+/* ---------- stacked lines, top-left (kept "My Top Tracks" type: see DESIGN_NOTES.md) ---------- */
 html[data-theme="subway"] .np.sb { display: block; padding: 0; }
 html[data-theme="subway"] .sb-top {
-  position: fixed; z-index: 2; display: block; width: auto; max-width: none;
-  justify-self: stretch; justify-items: normal;   /* undo the base .np-inner centering/shrinking */
-  top: calc(var(--sa-t) + 76px); left: calc(28px + var(--sa-l)); right: calc(28px + var(--sa-r));
+  position: fixed; z-index: 2; display: block; max-width: none;
+  justify-self: start; justify-items: normal;      /* undo the base .np-inner centering */
+  top: calc(var(--sa-t) + 76px); left: calc(28px + var(--sa-l)); right: auto;
+  width: max-content;                              /* as wide as the longest line, so the bar matches the text */
+  max-width: calc(100vw - 56px - var(--sa-l) - var(--sa-r));
   text-shadow: 0 1px 2px rgba(0,0,0,.85), 0 1px 10px rgba(0,0,0,.55);
   transition: transform 3s var(--ease);
 }
 .sb-l {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  font-family: var(--sb-sans); font-size: 15px; line-height: 1.75; letter-spacing: .02em; color: #fff;
+  font-family: var(--sb-font); font-weight: 800; letter-spacing: 0;
+  font-size: 16px; line-height: 2.15; color: #fff;
 }
+.sb-k { color: rgba(255,255,255,.5); }            /* the faint word, like "Tracks" */
 .sb-l[hidden], .sb-status:empty { display: none; }
-.sb-title { font-family: var(--sb-font); font-weight: 800; font-size: 24px; line-height: 1.35; letter-spacing: .01em; white-space: normal; }
-.sb-artist { font-size: 16px; color: rgba(255,255,255,.9); }
-.sb-dim { color: rgba(255,255,255,.8); }
-.sb-status { margin-top: 2px; color: #fff; }
-.sb-bar { margin: 12px 0 8px; height: 2px; background: rgba(255,255,255,.28); box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+.sb-title { font-size: 26px; line-height: 1.5; white-space: normal; }
+.sb-status { color: rgba(255,255,255,.5); }
+.sb-bar { margin: 14px 0 10px; height: 2px; background: rgba(255,255,255,.28); box-shadow: 0 1px 4px rgba(0,0,0,.4); }
 .sb-bar i { display: block; height: 100%; width: calc(var(--p, 0) * 100%); background: #fff; transition: width var(--p-dur, 1s) linear; }
 .np.paused .sb-bar i { background: rgba(255,255,255,.55); }
 
-/* iPad: a little larger, half of the old width, anchored left */
+/* iPad: larger, and never wider than half of the screen */
 @media (min-width: 700px) and (min-height: 501px) {
   html[data-theme="subway"] .sb-top {
-    left: calc(56px + var(--sa-l)); right: auto;
-    width: calc((100vw - 112px - var(--sa-l) - var(--sa-r)) / 2);
+    left: calc(56px + var(--sa-l));
+    max-width: calc((100vw - 112px - var(--sa-l) - var(--sa-r)) / 2);
   }
-  .sb-l { font-size: 16px; }
-  .sb-title { font-size: 28px; }
-  .sb-artist { font-size: 18px; }
+  .sb-l { font-size: 18px; }
+  .sb-title { font-size: 32px; }
 }
-/* iPhone landscape: full width again, a bit tighter */
+/* iPhone landscape: a bit tighter so the stack fits the short screen */
 @media (orientation: landscape) and (max-height: 500px) {
-  html[data-theme="subway"] .sb-top { top: calc(var(--sa-t) + 62px); left: calc(40px + var(--sa-l)); right: calc(40px + var(--sa-r)); }
-  .sb-l { line-height: 1.6; font-size: 14px; }
-  .sb-title { font-size: 22px; }
+  html[data-theme="subway"] .sb-top { top: calc(var(--sa-t) + 60px); left: calc(40px + var(--sa-l)); max-width: calc(100vw - 80px - var(--sa-l) - var(--sa-r)); }
+  .sb-l { font-size: 14px; line-height: 1.85; }
+  .sb-title { font-size: 22px; line-height: 1.4; }
+  .sb-bar { margin: 8px 0 6px; }
 }
 
 /* ---------- shared pieces ---------- */
