@@ -77,6 +77,13 @@ html[data-theme="subway"] .sb-top {
   .sb-time { display: none; }
   .sb-times { display: flex; }
 }
+/* iPad and landscape: the block takes half of the width it used to, anchored left */
+@media (min-width: 601px), (orientation: landscape) {
+  html[data-theme="subway"] .sb-top {
+    right: auto;
+    width: calc((100vw - 112px - var(--sa-l) - var(--sa-r)) / 2);
+  }
+}
 @media (orientation: landscape) and (max-height: 500px) {
   html[data-theme="subway"] .sb-top { top: calc(var(--sa-t) + 64px); }
 }
