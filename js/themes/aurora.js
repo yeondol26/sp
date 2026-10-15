@@ -15,7 +15,8 @@
 //     [data-fit]           title box sized to fit: its CSS font-size is the max, --fit-min the floor;
 //                          contains [data-slot=title] and optionally a [data-fit-suffix]
 //     .art-stack > img×2   artwork crossfade (any number of stacks)
-//     .np                  gets .paused and CSS var --p (0..1 progress)
+//     .np                  gets .paused, CSS var --p (0..1 progress) and --p-dur (use it as the
+//                          transition time of anything driven by --p: 1s forward, 0s when it jumps back)
 //     .np-inner            nudged a few px every minute (anti burn-in)
 const DEVICE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></svg>';
 

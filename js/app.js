@@ -329,7 +329,7 @@ function viewNow() {
   autoHide = true; poke();
   $view.innerHTML = '<div class="center-msg">불러오는 중…</div>';
 
-  let state = null, at = 0, shownKey = null, mode = null, artIdx = 0, timer = 0, alive = true, title = '';
+  let state = null, at = 0, shownKey = null, mode = null, artIdx = 0, timer = 0, alive = true, title = '', lastFrac = 0;
   const refit = () => { if (mode === 'playing') (els.fits || []).forEach((b) => fitTitle(b, title)); };
   let refitTimer = 0;
   const onResize = () => { clearTimeout(refitTimer); refitTimer = setTimeout(refit, 120); };
@@ -341,7 +341,7 @@ function viewNow() {
   const slots = {};
   const setSlot = (name, text) => (slots[name] || []).forEach((el) => { el.textContent = text; });
   const buildPlaying = () => {
-    mode = 'playing'; shownKey = null;
+    mode = 'playing'; shownKey = null; lastFrac = Infinity;
     $view.innerHTML = `${theme.markup()}<div class="mini-clock tnum"></div>`;
     for (const k in slots) delete slots[k];
     $view.querySelectorAll('[data-slot]').forEach((el) => (slots[el.dataset.slot] ||= []).push(el));
@@ -399,7 +399,12 @@ function viewNow() {
     if (mode !== 'playing' || !state?.item) return;
     const dur = state.item.duration_ms || 0, p = progressNow();
     const frac = dur ? p / dur : 0;
+    // Forward motion glides; going back (new track, seek back) jumps. A transition takes its
+    // duration from the new style, so setting both together makes this change instant.
+    const back = frac < lastFrac - 0.002;
+    els.np.style.setProperty('--p-dur', back ? '0s' : '1s');
     els.np.style.setProperty('--p', frac.toFixed(4));
+    lastFrac = frac;
     setSlot('cur', fmt(p));
     setSlot('dur', fmt(dur));
     setSlot('pct', `${Math.round(frac * 100)}%`);

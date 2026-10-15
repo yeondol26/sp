@@ -79,7 +79,7 @@ html[data-theme="subway"] .sb-inner {
 .sb-bar { height: 3px; border-radius: 2px; background: rgba(255,255,255,.22); overflow: hidden; }
 .sb-bar i {
   display: block; height: 100%; width: calc(var(--p, 0) * 100%); background: #fff;
-  box-shadow: 0 0 10px rgba(255,255,255,.6); transition: width 1s linear;
+  box-shadow: 0 0 10px rgba(255,255,255,.6); transition: width var(--p-dur, 1s) linear;
 }
 .np.paused .sb-bar i { background: rgba(255,255,255,.5); box-shadow: none; }
 .sb-meta {

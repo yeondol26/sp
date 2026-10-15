@@ -93,7 +93,7 @@ html[data-theme="swiss"] .sw-inner {
 .sw-line { position: relative; height: 3px; background: var(--sw-ink); }
 .sw-line i {
   position: absolute; left: 0; top: -3px; height: 9px; width: calc(var(--p, 0) * 100%);
-  background: var(--sw-red); transition: width 1s linear;
+  background: var(--sw-red); transition: width var(--p-dur, 1s) linear;
 }
 .np.paused .sw-line i { background: var(--sw-ink); }
 .sw-times { display: flex; justify-content: space-between; align-items: baseline; margin-top: 12px; font-size: clamp(21px, 3.2vw, 38px); font-weight: 700; letter-spacing: -.03em; }
