@@ -63,14 +63,14 @@ html[data-theme="subway"] .sb-top {
 .sb-l {
   white-space: normal; overflow-wrap: anywhere;   /* long text wraps to the next line instead of being cut */
   font-family: var(--sb-font); font-weight: 800; letter-spacing: 0;
-  font-size: 12.8px; line-height: 1.2; color: #fff;
+  font-size: 15px; line-height: 1.2; color: #fff;
 }
 .sb-l, .sb-v { color: #b4b4b4; }                  /* artist, album, times, device: light grey */
 .sb-title, .sb-k { color: #fff; }                 /* title, labels (From / delta time / until END / Synced w/) and year: white */
 .sb-year:not(:empty)::before { content: " · "; }
 .sb-l[hidden], .sb-status:empty { display: none; }
-.sb-title { font-size: 20.8px; line-height: 1.15; white-space: normal; }
-.sb-from { font-size: 11px; }                     /* the From (album) line: one step smaller */
+.sb-title { font-size: 24px; line-height: 1.15; white-space: normal; }
+.sb-from { font-size: 13px; }                     /* the From (album) line: one step smaller */
 .sb-status { color: rgba(255,255,255,.5); }
 .sb-bar { margin: 8px 0 6px; height: 2px; background: rgba(255,255,255,.28); }
 .sb-bar i { display: block; height: 100%; width: calc(var(--p, 0) * 100%); background: #fff; transition: width var(--p-dur, 1s) linear; }
