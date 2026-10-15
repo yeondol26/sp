@@ -65,8 +65,9 @@ html[data-theme="subway"] .sb-top {
   font-family: var(--sb-font); font-weight: 800; letter-spacing: 0;
   font-size: 12.8px; line-height: 1.2; color: #fff;
 }
-.sb-l { color: #b4b4b4; }                         /* labels and changing values: light grey */
-.sb-title { color: #fff; }                        /* only the song title is white */
+.sb-l, .sb-v { color: #b4b4b4; }                  /* artist, album, times, device: light grey */
+.sb-title, .sb-k { color: #fff; }                 /* title, labels (From / delta time / until END / Synced w/) and year: white */
+.sb-year:not(:empty)::before { content: " · "; }
 .sb-l[hidden], .sb-status:empty { display: none; }
 .sb-title { font-size: 20.8px; line-height: 1.15; white-space: normal; }
 .sb-from { font-size: 11px; }                     /* the From (album) line: one step smaller */

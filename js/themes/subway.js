@@ -1,6 +1,6 @@
 // Subway — one still scene fills the screen (a night train, filtered like an old TV broadcast).
 // No album art: a stack of short lines at the top-left, set in the kept Top-title style
-// (Shippori Mincho B1 800 — see DESIGN_NOTES.md): only the song title is white; everything else (labels and changing values) light grey, no text shadow.
+// (Shippori Mincho B1 800 — see DESIGN_NOTES.md): title, labels and year white; artist, album, times and device light grey; no text shadow.
 // The scene is drawn on #bg by themes/subway.css, so the idle and Top screens share it.
 export default {
   id: 'subway',
@@ -17,7 +17,7 @@ export default {
         <div class="sb-head" data-swap>
           <div class="sb-l sb-title" data-slot="title"></div>
           <div class="sb-l sb-v" data-slot="artist"></div>
-          <div class="sb-l sb-from"><span class="sb-k">From</span> <span class="sb-v" data-slot="albumyear"></span></div>
+          <div class="sb-l sb-from"><span class="sb-k">From</span> <span class="sb-v" data-slot="album"></span><span class="sb-k sb-year" data-slot="year"></span></div>
         </div>
         <div class="sb-bar"><i></i></div>
         <div class="sb-l tnum"><span class="sb-k">delta time</span> <span class="sb-v" data-slot="cur">0:00</span></div>
