@@ -8,6 +8,24 @@ export default {
   css: 'themes/swiss.css',
   fonts: 'https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700;900&display=swap',
   labels: { playing: 'Now Playing', paused: 'Paused' },
+  // Album mode: the same page with album and track swapped (album is the big title) and a
+  // second bar for the whole album under the track bar.
+  albumMarkup: () => `
+    <section class="np sw">
+      <div class="np-inner sw-inner">
+        <div class="sw-l1"><span class="sw-mark"></span><span data-slot="status"></span></div>
+        <div class="sw-l2" data-swap><span data-slot="artist"></span><span class="sw-dim" data-slot="track"></span></div>
+        <div class="sw-l3 sw-dim"><span data-slot="kicker"></span><span data-show="device" data-slot="device"></span></div>
+        <div class="sw-art art-stack" aria-hidden="true"><img alt=""><img alt=""></div>
+        <div class="sw-title" data-fit><span data-slot="title"></span><span class="sw-dot" data-fit-suffix>.</span></div>
+        <div class="sw-progress">
+          <div class="sw-line"><i></i></div>
+          <div class="sw-times tnum"><span data-slot="cur">0:00</span><span class="sw-dim" data-slot="dur">0:00</span></div>
+          <div class="sw-line sw-aline" data-show="album"><i></i></div>
+          <div class="sw-times tnum" data-show="album"><span data-slot="acur">0:00</span><span class="sw-dim" data-slot="adur">0:00</span></div>
+        </div>
+      </div>
+    </section>`,
   markup: () => `
     <section class="np sw">
       <div class="np-inner sw-inner">

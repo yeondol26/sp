@@ -126,13 +126,8 @@ html[data-theme="swiss"] .rcard img { box-shadow: none; }
 html[data-theme="swiss"] .rcard .num { -webkit-text-stroke: 2px rgba(17,17,17,.8); }
 @media (max-width: 430px) { .sw-times { font-size: 26px; } }
 
-/* album mode (default layout): the one red, square art, heavy type */
-html[data-theme="swiss"] .al { --accent: 227 49 29; }
-html[data-theme="swiss"] .al .art-wrap img, html[data-theme="swiss"] .al .art-ph { border-radius: 0; box-shadow: none; }
-html[data-theme="swiss"] .al-title { font-weight: 900; letter-spacing: -.05em; line-height: .98; }
-html[data-theme="swiss"] .al-line, html[data-theme="swiss"] .segs > b { border-radius: 0; }
-/* no "Track"/"Album" words over the bars, no "left" after the album time; the album bar is one solid bar */
-html[data-theme="swiss"] .al-name, html[data-theme="swiss"] .al-left { display: none; }
-html[data-theme="swiss"] .al-lab { justify-content: flex-end; }
-html[data-theme="swiss"] .segs { gap: 0; height: 4px; }   /* same thickness as the track bar */
-html[data-theme="swiss"] .segs > b.done { background: rgb(var(--accent)); }
+/* album mode: a second bar for the whole album (driven by --ap) */
+.sw-progress [hidden] { display: none; }
+.sw-aline { margin-top: 18px; }
+.sw-aline i { width: calc(var(--ap, 0) * 100%); }
+@media (orientation: landscape) and (max-height: 500px) { .sw-aline { margin-top: 10px; } }
