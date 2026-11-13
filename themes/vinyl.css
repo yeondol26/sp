@@ -175,3 +175,9 @@ html[data-theme="vinyl"] .hero1 .name { font-family: var(--vy-serif); font-weigh
 html[data-theme="vinyl"] .top-head h1 span { font-style: italic; font-weight: 400; }
 html[data-theme="vinyl"] .rcard .num { font-family: var(--vy-serif); font-style: italic; font-weight: 400; -webkit-text-stroke: 1.5px rgba(246,239,228,.55); }
 html[data-theme="vinyl"] .hero1 .rank { font-family: var(--vy-sans); }
+
+/* album mode (default layout) */
+html[data-theme="vinyl"] .al-title { font-family: var(--vy-serif); font-weight: 600; letter-spacing: -.015em; color: var(--vy-ink); }
+html[data-theme="vinyl"] .al-artist { font-family: var(--vy-serif); font-style: italic; font-weight: 400; color: var(--vy-dim); }
+html[data-theme="vinyl"] .al-track { font-family: var(--vy-serif); font-weight: 600; color: var(--vy-ink); }
+html[data-theme="vinyl"] .al-kicker, html[data-theme="vinyl"] .al-lab { color: var(--vy-faint); }

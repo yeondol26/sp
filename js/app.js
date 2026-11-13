@@ -15,12 +15,15 @@ const pick = (images, min = 300) => {
 };
 const artOf = (item, min) => pick(item?.album?.images || item?.images || item?.show?.images, min);
 const artistsOf = (x) => (x?.artists || []).map((a) => a.name).join(', ') || x?.show?.name || '';
+// m:ss, or h:mm:ss past an hour (album lengths)
+const fmtL = (ms) => { const s = Math.max(0, Math.floor((ms || 0) / 1000)); return s < 3600 ? fmt(ms) : `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
 const fmt = (ms) => { const s = Math.max(0, Math.floor((ms || 0) / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const timeStr = (d = new Date()) => d.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
 const dateStr = (d = new Date()) => d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' });
 
 const ICONS = {
+  disc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/><path d="M12 6.5a5.5 5.5 0 0 1 5.5 5.5"/></svg>',
   sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
   expand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>',
   out: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>',
@@ -180,30 +183,40 @@ function poke() {
 }
 ['pointerdown', 'pointermove', 'keydown'].forEach((e) => addEventListener(e, poke, { passive: true }));
 
-const $wake = document.getElementById('btn-wake');
+const $album = document.getElementById('btn-album');
 const $fs = document.getElementById('btn-fs');
 const $out = document.getElementById('btn-out');
 const $themeBtn = document.getElementById('btn-theme');
-$wake.innerHTML = ICONS.sun; $fs.innerHTML = ICONS.expand; $out.innerHTML = ICONS.out; $themeBtn.innerHTML = ICONS.palette;
+$album.innerHTML = ICONS.disc; $fs.innerHTML = ICONS.expand; $out.innerHTML = ICONS.out; $themeBtn.innerHTML = ICONS.palette;
 $themeBtn.onclick = openThemeSheet;
 
-let wakeLock = null;
-let wantWake = (() => { try { return localStorage.getItem('spv.wake') === '1'; } catch { return false; } })();
-async function applyWake() {
-  $wake.classList.toggle('on', wantWake);
-  try {
-    if (wantWake && !wakeLock && document.visibilityState === 'visible') {
-      wakeLock = await navigator.wakeLock.request('screen');
-      wakeLock.addEventListener('release', () => { wakeLock = null; });
-    } else if (!wantWake && wakeLock) {
-      await wakeLock.release(); wakeLock = null;
-    }
-  } catch { /* refused (battery saver etc.) — keep the preference, retry on next visibility change */ }
+// Album mode: the Now Playing screen shows the whole album (album name first, position in the
+// track list, time left in the album) instead of just the current track.
+let albumMode = store.get('spv.album') === '1';
+function applyAlbumMode() {
+  $album.classList.toggle('on', albumMode);
+  document.documentElement.dataset.album = albumMode ? 'on' : 'off';
 }
-if ('wakeLock' in navigator) {
-  $wake.onclick = () => { wantWake = !wantWake; try { localStorage.setItem('spv.wake', wantWake ? '1' : '0'); } catch {} applyWake(); };
-  document.addEventListener('visibilitychange', applyWake);
-} else $wake.hidden = true;
+$album.onclick = () => {
+  albumMode = !albumMode;
+  store.set('spv.album', albumMode ? '1' : '0');
+  applyAlbumMode();
+  if (document.documentElement.dataset.view === 'now') route();
+};
+applyAlbumMode();
+
+// Keep the screen on wherever the browser allows it (no toggle; asked again after any tap,
+// since some browsers only grant it after a user gesture).
+let wakeLock = null;
+async function keepAwake() {
+  if (!('wakeLock' in navigator) || wakeLock || document.visibilityState !== 'visible') return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+  } catch { /* refused (battery saver, no gesture yet…) — retried on the next tap or visibility change */ }
+}
+document.addEventListener('visibilitychange', keepAwake);
+addEventListener('pointerdown', keepAwake, { passive: true });
 
 const root = document.documentElement;
 const fsEnabled = document.fullscreenEnabled || document.webkitFullscreenEnabled;
@@ -325,11 +338,65 @@ async function fetchPlayer() {
   }
 }
 
+// Album mode markup used by themes without their own albumMarkup(). Extra hooks:
+//   [data-slot=track|trackpos|trackcount|adur|acur|aleft]   current track name, "03 / 12", "12",
+//                                                           album length, elapsed, left
+//   [data-segs]   filled with one <b> per track (flex-grow = its length): .done before the
+//                 current one, .cur (with an <i> sized by --p) for it. .np also gets --ap (0..1).
+//   [data-show=album]   hidden until the album's track list has loaded
+const DEFAULT_ALBUM_MARKUP = () => `
+  <section class="np al">
+    <div class="np-inner al-inner">
+      <div class="art-wrap art-stack"><div class="art-ph"></div><img alt=""><img alt=""></div>
+      <div class="al-meta">
+        <div class="al-kicker tnum"><span data-slot="year"></span><span data-show="album"> · <span data-slot="trackcount"></span> tracks · <span data-slot="adur"></span></span></div>
+        <div class="al-title" data-slot="title"></div>
+        <div class="al-artist" data-slot="artist"></div>
+        <div class="al-now" data-swap><span class="al-no tnum" data-slot="trackpos"></span><span class="al-track" data-slot="track"></span></div>
+        <div class="al-bars">
+          <div class="al-row">
+            <div class="al-lab"><span>Track</span><span class="tnum"><span data-slot="cur">0:00</span> / <span data-slot="dur">0:00</span></span></div>
+            <div class="al-line"><i></i></div>
+          </div>
+          <div class="al-row" data-show="album">
+            <div class="al-lab"><span>Album</span><span class="tnum"><span data-slot="aleft">0:00</span> left</span></div>
+            <div class="segs" data-segs></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+// Track lists of albums, by album id (an album's tracks don't change while the page is open).
+const albumCache = new Map();
+async function loadAlbum(id) {
+  if (albumCache.has(id)) return albumCache.get(id);
+  const job = (async () => {
+    const items = [];
+    let next = `/albums/${id}/tracks`, params = { limit: 50 }, pages = 0;
+    while (next && pages++ < 20) {
+      const r = await getList(next, params);
+      items.push(...(r?.items || []));
+      next = r?.next; params = undefined;
+    }
+    items.sort((a, b) => (a.disc_number - b.disc_number) || (a.track_number - b.track_number));
+    const tracks = items.map((t) => ({ id: t.id, disc: t.disc_number, no: t.track_number, dur: t.duration_ms || 0 }));
+    const starts = [];
+    tracks.reduce((acc, t) => { starts.push(acc); return acc + t.dur; }, 0);
+    return { id, tracks, starts, total: tracks.reduce((a, t) => a + t.dur, 0) };
+  })();
+  albumCache.set(id, job);
+  job.catch(() => albumCache.delete(id));   // try again on the next track
+  return job;
+}
+
 function viewNow() {
   autoHide = true; poke();
   $view.innerHTML = '<div class="center-msg">불러오는 중…</div>';
 
   let state = null, at = 0, shownKey = null, mode = null, artIdx = 0, timer = 0, alive = true, title = '', lastFrac = 0, lastItemAt = 0;
+  // album mode: the loaded album, and where the current track sits in it
+  let album = null, albumIdx = -1, albumWant = null;
   const refit = () => { if (mode === 'playing') (els.fits || []).forEach((b) => fitTitle(b, title)); };
   let refitTimer = 0;
   const onResize = () => { clearTimeout(refitTimer); refitTimer = setTimeout(refit, 120); };
@@ -342,7 +409,9 @@ function viewNow() {
   const setSlot = (name, text) => (slots[name] || []).forEach((el) => { el.textContent = text; });
   const buildPlaying = () => {
     mode = 'playing'; shownKey = null; lastFrac = Infinity;
-    $view.innerHTML = `${theme.markup()}<div class="mini-clock tnum"></div>`;
+    const markup = albumMode ? (theme.albumMarkup || DEFAULT_ALBUM_MARKUP) : theme.markup;
+    $view.innerHTML = `${markup()}<div class="mini-clock tnum"></div>`;
+    album = null; albumIdx = -1; albumWant = null;
     for (const k in slots) delete slots[k];
     $view.querySelectorAll('[data-slot]').forEach((el) => (slots[el.dataset.slot] ||= []).push(el));
     Object.assign(els, {
@@ -350,7 +419,9 @@ function viewNow() {
       stacks: $view.querySelectorAll('.art-stack'), swaps: $view.querySelectorAll('[data-swap]'),
       deviceShow: $view.querySelectorAll('[data-show="device"]'), clock: $view.querySelector('.mini-clock'),
       fits: $view.querySelectorAll('[data-fit]'),
+      segs: $view.querySelectorAll('[data-segs]'), albumShow: $view.querySelectorAll('[data-show="album"]'),
     });
+    els.albumShow.forEach((el) => { el.hidden = true; });
   };
 
   const buildIdle = async () => {
@@ -409,6 +480,12 @@ function viewNow() {
     setSlot('dur', fmt(dur));
     setSlot('left', fmt(dur - p));
     setSlot('pct', `${Math.round(frac * 100)}%`);
+    if (album && albumIdx >= 0 && album.total) {
+      const done = album.starts[albumIdx] + p;
+      els.np.style.setProperty('--ap', (done / album.total).toFixed(4));
+      setSlot('acur', fmtL(done));
+      setSlot('aleft', fmtL(album.total - done));
+    }
     (slots.textbar || []).forEach((el) => { el.textContent = textBar(el, frac); });
   };
 
@@ -424,6 +501,37 @@ function viewNow() {
       next.onload = () => { next.classList.add('on'); cur.classList.remove('on'); };
       next.src = url;
     });
+  };
+
+  // Album mode: find the current track in its album's track list and draw the segments.
+  const placeInAlbum = (it) => {
+    if (!album) return;
+    const i = album.tracks.findIndex((t) => t.id === it.id || t.id === it.linked_from?.id);
+    albumIdx = i >= 0 ? i : album.tracks.findIndex((t) => t.disc === it.disc_number && t.no === it.track_number);
+    const n = album.tracks.length;
+    setSlot('trackcount', String(n));
+    setSlot('adur', fmtL(album.total));
+    setSlot('trackpos', albumIdx >= 0 ? `${String(albumIdx + 1).padStart(2, '0')} / ${String(n).padStart(2, '0')}` : `— / ${String(n).padStart(2, '0')}`);
+    els.segs.forEach((box) => {
+      if (box.dataset.album !== album.id) {
+        box.dataset.album = album.id;
+        box.innerHTML = album.tracks.map((t) => `<b style="flex-grow:${Math.max(1, Math.round(t.dur / 1000))}"><i></i></b>`).join('');
+      }
+      [...box.children].forEach((b, j) => { b.className = j < albumIdx ? 'done' : j === albumIdx ? 'cur' : ''; });
+    });
+    els.albumShow.forEach((el) => { el.hidden = albumIdx < 0; });
+    paintProgress();
+  };
+  const updateAlbum = async (it) => {
+    const id = it.album?.id;
+    if (!id) { album = null; albumIdx = -1; els.albumShow.forEach((el) => { el.hidden = true; }); return; }
+    if (album?.id === id) return placeInAlbum(it);
+    albumWant = id;
+    try {
+      const a = await loadAlbum(id);
+      if (albumWant !== id || mode !== 'playing') return;   // moved on meanwhile
+      album = a; placeInAlbum(state?.item || it);
+    } catch { /* track list unavailable: the album rows stay hidden */ }
   };
 
   const render = async () => {
@@ -454,8 +562,10 @@ function viewNow() {
       setBackground(artOf(it, 300));
       if (!first && els.swaps.length) { els.swaps.forEach((el) => el.classList.add('out')); await sleep(350); }
       if (mode !== 'playing') return;
-      setSlot('title', it.name);
-      title = it.name;
+      const albumName = it.album?.name || it.show?.name || it.name;
+      setSlot('title', albumMode ? albumName : it.name);
+      setSlot('track', it.name);
+      title = albumMode ? albumName : it.name;
       refit();
       setSlot('artist', artistsOf(it));
       setSlot('album', it.album?.name || it.show?.publisher || '');
@@ -466,6 +576,10 @@ function viewNow() {
       setSlot('year', year);
       setSlot('albumyear', [it.album?.name || it.show?.publisher || '', year].filter(Boolean).join(' · '));
       document.title = `${it.name} · ${artistsOf(it)}`;
+      if (albumMode) {
+        if (album?.id !== it.album?.id) setSlot('trackpos', '');
+        updateAlbum(it);
+      }
       els.swaps.forEach((el) => el.classList.remove('out'));
     }
     paintProgress();
@@ -639,6 +753,6 @@ addEventListener('scroll', () => document.body.classList.toggle('scrolled', scro
   await applyTheme(theme);
   try { await auth.handleCallback(); }
   catch (e) { $chrome.hidden = true; viewSetup(e.message); return; }
-  applyWake();
+  keepAwake();
   route();
 })();

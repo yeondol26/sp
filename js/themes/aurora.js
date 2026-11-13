@@ -18,6 +18,7 @@
 //     .np                  gets .paused, CSS var --p (0..1 progress) and --p-dur (use it as the
 //                          transition time of anything driven by --p: 1s forward, 0s when it jumps back)
 //     .np-inner            nudged a few px every minute (anti burn-in)
+//   albumMarkup()         optional album-mode screen (else the default one in app.js; extra hooks listed there)
 const DEVICE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></svg>';
 
 export default {

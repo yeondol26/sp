@@ -158,6 +158,47 @@ main { position: relative; z-index: 1; }
 .text-swap { transition: opacity .6s var(--ease), transform .6s var(--ease); }
 .text-swap.out { opacity: 0; transform: translateY(6px); }
 
+/* ---------- album mode (default layout; themes may bring their own albumMarkup) ---------- */
+.al .art-wrap { width: min(70vw, 34vh, 440px); }
+.al-meta { width: 100%; max-width: min(84vw, 640px); text-align: center; min-width: 0; }
+.al-kicker { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
+.al-kicker [hidden] { display: none; }
+.al-title {
+  margin-top: 12px; font-size: clamp(28px, 5vw, 64px); font-weight: 800; line-height: 1.06; letter-spacing: -.025em;
+  overflow-wrap: anywhere; text-wrap: balance;
+}
+.al-artist { margin-top: 10px; font-size: clamp(16px, 2.1vw, 24px); font-weight: 500; color: var(--dim); overflow-wrap: anywhere; }
+.al-now {
+  margin-top: clamp(18px, 3vh, 30px); display: flex; gap: 12px; align-items: baseline; justify-content: center;
+  font-size: clamp(15px, 1.8vw, 20px); transition: opacity .6s var(--ease), transform .6s var(--ease);
+}
+.al-now.out { opacity: 0; transform: translateY(6px); }
+.al-no { flex: none; font-size: .78em; font-weight: 700; letter-spacing: .06em; color: rgb(var(--accent)); }
+.al-track { font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
+.al-bars { margin-top: clamp(18px, 3vh, 30px); display: grid; gap: 14px; text-align: left; }
+.al-row[hidden] { display: none; }
+.al-lab { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 7px; font-size: 11.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
+.al-line { position: relative; height: 4px; border-radius: 2px; background: color-mix(in srgb, currentColor 16%, transparent); overflow: hidden; }
+.al-line > i { position: absolute; inset: 0 auto 0 0; width: calc(var(--p, 0) * 100%); border-radius: 2px; background: rgb(var(--accent)); transition: width var(--p-dur, 1s) linear; }
+/* album bar: one segment per track, sized by its length */
+.segs { display: flex; gap: 3px; height: 6px; }
+.segs > b { position: relative; flex-basis: 0; min-width: 2px; border-radius: 2px; overflow: hidden; background: color-mix(in srgb, currentColor 16%, transparent); }
+.segs > b.done { background: rgb(var(--accent) / .6); }
+.segs > b > i { position: absolute; inset: 0 auto 0 0; width: 0; background: rgb(var(--accent)); }
+.segs > b.cur > i { width: calc(var(--p, 0) * 100%); transition: width var(--p-dur, 1s) linear; }
+.np.paused .al-line > i, .np.paused .segs > b.cur > i { opacity: .55; }
+@media (orientation: landscape) and (min-width: 700px) {
+  .al .art-wrap { width: min(62vh, 40vw, 600px); }
+  .al-meta { text-align: left; }
+  .al-now { justify-content: flex-start; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .al .art-wrap { width: min(58vh, 34vw); }
+  .al-title { font-size: clamp(22px, 3.4vw, 32px); margin-top: 6px; }
+  .al-now, .al-bars { margin-top: 12px; }
+  .al-bars { gap: 8px; }
+}
+
 /* landscape: art left, info right */
 @media (orientation: landscape) and (min-width: 700px) {
   .np-inner { grid-template-columns: auto minmax(0, 1fr); gap: clamp(32px, 5vw, 80px); justify-items: start; }
