@@ -81,12 +81,13 @@ html[data-theme="subway"] .sb-top {
 .sb-bar { margin: 8px 0 6px; height: 2px; background: rgba(255,255,255,.28); }
 .sb-bar i { display: block; height: 100%; width: calc(var(--p, 0) * 100%); background: #fff; transition: width var(--p-dur, 1s) linear; }
 .np.paused .sb-bar i { background: rgba(255,255,255,.55); }
-/* album mode: the album bar is one thin segment per track (length-weighted) */
+/* album mode: the album bar looks like one solid bar (drawn as length-weighted pieces with no gaps) */
 .sb-album [hidden] { display: none; }
 .sb-gap { margin-top: .6em; }
-.sb-segs { display: flex; gap: 2px; height: 2px; margin: 8px 0 6px; }
-.sb-segs > b { position: relative; flex-basis: 0; min-width: 1px; background: rgba(255,255,255,.28); overflow: hidden; }
-.sb-segs > b.done { background: rgba(255,255,255,.7); }
+.sb-segs { display: flex; height: 2px; margin: 8px 0 6px; background: rgba(255,255,255,.28); }
+.sb-segs > b { position: relative; flex-basis: 0; min-width: 0; overflow: hidden; }
+.sb-segs > b.done { background: #fff; }
+.np.paused .sb-segs > b.done { background: rgba(255,255,255,.55); }
 .sb-segs > b > i { position: absolute; inset: 0 auto 0 0; width: 0; background: #fff; }
 .sb-segs > b.cur > i { width: calc(var(--p, 0) * 100%); transition: width var(--p-dur, 1s) linear; }
 .np.paused .sb-segs > b.cur > i { background: rgba(255,255,255,.55); }

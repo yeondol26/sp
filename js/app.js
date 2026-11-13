@@ -355,11 +355,11 @@ const DEFAULT_ALBUM_MARKUP = () => `
         <div class="al-now" data-swap><span class="al-no tnum" data-slot="trackpos"></span><span class="al-track" data-slot="track"></span></div>
         <div class="al-bars">
           <div class="al-row">
-            <div class="al-lab"><span>Track</span><span class="tnum"><span data-slot="cur">0:00</span> / <span data-slot="dur">0:00</span></span></div>
+            <div class="al-lab"><span class="al-name">Track</span><span class="tnum"><span data-slot="cur">0:00</span> / <span data-slot="dur">0:00</span></span></div>
             <div class="al-line"><i></i></div>
           </div>
           <div class="al-row" data-show="album">
-            <div class="al-lab"><span>Album</span><span class="tnum"><span data-slot="aleft">0:00</span> left</span></div>
+            <div class="al-lab"><span class="al-name">Album</span><span class="tnum"><span data-slot="aleft">0:00</span><span class="al-left"> left</span></span></div>
             <div class="segs" data-segs></div>
           </div>
         </div>
