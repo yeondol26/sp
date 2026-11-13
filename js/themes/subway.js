@@ -28,7 +28,7 @@ export default {
         <div data-show="album">
           <div class="sb-segs" data-segs></div>
           <div class="sb-l tnum"><span class="sb-k">album time</span> <span class="sb-v" data-slot="acur">0:00</span></div>
-          <div class="sb-l tnum"><span class="sb-v" data-slot="aleft">0:00</span> <span class="sb-k">until album END</span></div>
+          <div class="sb-l tnum"><span class="sb-v" data-slot="aleft">0:00</span> <span class="sb-k">until END</span></div>
         </div>
         <div class="sb-l sb-gap" data-show="device"><span class="sb-k">Synced w/</span> <span class="sb-v" data-slot="device"></span></div>
         <div class="sb-l sb-status" data-slot="status"></div>
