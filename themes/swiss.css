@@ -130,4 +130,21 @@ html[data-theme="swiss"] .rcard .num { -webkit-text-stroke: 2px rgba(17,17,17,.8
 .sw-progress [hidden] { display: none; }
 .sw-aline { margin-top: 18px; }
 .sw-aline i { width: calc(var(--ap, 0) * 100%); }
-@media (orientation: landscape) and (max-height: 500px) { .sw-aline { margin-top: 10px; } }
+/* the extra bar + times row takes height: give the title a smaller height budget so the page
+   still fits the screen (fitTitle shrinks the title to its max-height) */
+.sw-al .sw-title { max-height: 19vh; }
+.sw-al .sw-art { width: min(100%, 26vh); }
+@media (orientation: landscape) and (min-width: 700px) {
+  .sw-al .sw-title { max-height: 27vh; font-size: min(11.2vw, 15vh); }
+  .sw-al .sw-art { width: min(32vh, 24vw); }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .sw-aline { margin-top: 8px; }
+  .sw-al .sw-title { max-height: 16vh; margin: 6px 0 10px; }
+  .sw-al .sw-times { font-size: 18px; margin-top: 4px; }
+}
+@media (max-height: 600px) and (orientation: portrait) {
+  .sw-al .sw-times { font-size: 22px; margin-top: 8px; }
+  .sw-al .sw-title { max-height: 16vh; }
+  .sw-al .sw-aline { margin-top: 12px; }
+}

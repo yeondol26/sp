@@ -192,6 +192,10 @@ main { position: relative; z-index: 1; }
   .al-meta { text-align: left; }
   .al-now { justify-content: flex-start; }
 }
+@media (orientation: portrait) and (max-height: 600px) {
+  .al .art-wrap { width: min(60vw, 26vh); }
+  .al-now, .al-bars { margin-top: 14px; }
+}
 @media (orientation: landscape) and (max-height: 500px) {
   .al .art-wrap { width: min(58vh, 34vw); }
   .al-title { font-size: clamp(22px, 3.4vw, 32px); margin-top: 6px; }

@@ -11,7 +11,7 @@ export default {
   // Album mode: the same page with album and track swapped (album is the big title) and a
   // second bar for the whole album under the track bar.
   albumMarkup: () => `
-    <section class="np sw">
+    <section class="np sw sw-al">
       <div class="np-inner sw-inner">
         <div class="sw-l1"><span class="sw-mark"></span><span data-slot="status"></span></div>
         <div class="sw-l2" data-swap><span data-slot="artist"></span><span class="sw-dim" data-slot="track"></span></div>
